@@ -1,6 +1,6 @@
 FROM eclipse-temurin:21-jdk-alpine AS build
 WORKDIR /workspace
-COPY gradlew settings.gradle.kts build.gradle.kts ./
+COPY gradlew settings.gradle build.gradle ./
 COPY gradle gradle
 RUN chmod +x gradlew && ./gradlew --no-daemon -q dependencies > /dev/null
 COPY src src
@@ -15,6 +15,4 @@ ENV SPRING_PROFILES_ACTIVE=prod \
     JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/./urandom" \
     PORT=8080
 EXPOSE 8080
-HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-  CMD wget -qO- "http://127.0.0.1:${PORT}/actuator/health/liveness" > /dev/null || exit 1
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

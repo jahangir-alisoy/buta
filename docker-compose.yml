@@ -54,8 +54,7 @@ services:
   frontend:
     build: ./frontend
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
     environment:
       API_UPSTREAM: http://backend:8080
     ports:

@@ -68,20 +68,6 @@ spring:
     virtual:
       enabled: true
 
-management:
-  health:
-    mail:
-      enabled: false
-  endpoints:
-    web:
-      exposure:
-        include: health
-  endpoint:
-    health:
-      probes:
-        enabled: true
-      show-details: never
-
 springdoc:
   api-docs:
     enabled: ${APP_API_DOCS_ENABLED:true}

@@ -52,7 +52,6 @@ public class SecurityConfig {
                         .permissionsPolicyHeader(policy -> policy.policy("camera=(), microphone=(), geolocation=()")))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/error").permitAll()
-                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/api/v1/docs", "/api/v1/docs/**", "/swagger-ui/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/config", "/api/v1/home", "/api/v1/categories",
                                 "/api/v1/partners", "/api/v1/partners/*", "/api/v1/offers", "/api/v1/offers/*",

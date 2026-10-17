@@ -504,7 +504,7 @@ Premium, modern, mobile-first, inspired by iOS interface design with restrained 
 | Security | §14; OWASP ASVS level 1 as the baseline for the MVP |
 | Privacy | §15 |
 | Accessibility | WCAG 2.2 AA target: contrast, keyboard navigation, visible focus, dialog focus management, reduced motion and reduced transparency |
-| Observability | JSON logs in production with request id; health/liveness/readiness endpoints; no secrets, OTPs, tokens or raw personal data in logs (emails masked) |
+| Observability | JSON logs in production with request id; no health-check endpoints (owner decision); no secrets, OTPs, tokens or raw personal data in logs (emails masked) |
 | Maintainability | Package-by-feature, SOLID, no code comments, small components, approved dependency list, Prettier/ESLint on the frontend |
 | Time | All timestamps stored in UTC; business periods computed in Asia/Baku; injected `Clock` |
 | Portability | Runs identically with Docker Compose locally and on Render |
@@ -521,7 +521,6 @@ Browser (SPA)
 Nginx (frontend container)
    ├── /              static SPA, try_files → /index.html (client routes survive refresh)
    ├── /assets/*      hashed files, Cache-Control: public, max-age=31536000, immutable
-   ├── /healthz       200 OK
    └── /api/*         proxy_pass ${API_UPSTREAM}
                           ▼
               Spring Boot backend (Java 21)
@@ -569,7 +568,7 @@ Each feature holds `XController`, `admin/AdminXController`, `XService`, `XReposi
 - Scheduled jobs: every minute (expire pending orders), hourly (expire redemptions, complete orders), daily 03:00 Asia/Baku (membership expiry and qualification, purge sessions and OTP challenges, interaction retention, demo date roll-forward).
 
 ### 10.5 Approved dependencies
-**Backend:** `spring-boot-starter-web`, `-validation`, `-security`, `-data-jpa`, `-actuator`, `-mail`, `-cache`; `liquibase-core`; `postgresql`; `springdoc-openapi-starter-webmvc-ui` 2.8.x (Boot 3.5 line — confirm at build); `caffeine`. Tests: `spring-boot-starter-test`, `spring-security-test`, `spring-boot-testcontainers`, Testcontainers `postgresql` and `junit-jupiter`. Not used: Lombok, MapStruct, JWT libraries, Thymeleaf (emails are rendered from `MessageSource` with HTML escaping).
+**Backend:** `spring-boot-starter-web`, `-validation`, `-security`, `-data-jpa`, `-mail`, `-cache`; `liquibase-core`; `postgresql`; `springdoc-openapi-starter-webmvc-ui` 2.8.x (Boot 3.5 line — confirm at build); `caffeine`. No test dependencies (§19). Not used: Lombok, MapStruct, JWT libraries, Thymeleaf (emails are rendered from `MessageSource` with HTML escaping).
 
 **Frontend (latest at planning time; caret ranges except TypeScript):** `react` 19.3, `react-dom`, `react-router` 7.18, `@tanstack/react-query` 5.104, `i18next` 26.4, `react-i18next` 17.0, `react-hook-form`, `zod` 4.6, `@hookform/resolvers` (zod 4 compatibility verified at install), `lucide-react`, `three` 0.186, one self-hosted variable font via `@fontsource-variable/*`. Dev: `vite` 8.3, `@vitejs/plugin-react` 6.1, `typescript` ~6.0.3, `eslint` 9, `typescript-eslint` 8.71, `eslint-plugin-react-hooks`, `eslint-plugin-jsx-a11y`, `prettier`, `vitest` 5.0, `jsdom`, `@testing-library/react` 16.3, `@testing-library/user-event`, `@testing-library/jest-dom`, `@playwright/test`, `@types/react`, `@types/react-dom`, `@types/three`.
 
@@ -830,7 +829,7 @@ Margin preview response example:
 ```
 
 ### 13.7 Operations
-`/actuator/health`, `/actuator/health/liveness`, `/actuator/health/readiness` (public, no details); every other actuator endpoint is not exposed.
+No actuator or health-check endpoints are exposed (owner decision).
 
 ---
 
@@ -1124,72 +1123,21 @@ Initial-route JS ≤ 200 KB gzip (excluding lazy 3D and admin chunks); route-lev
 
 ## 19. Testing strategy
 
-### 19.1 Backend
-- Unit tests (`*Test`, Surefire): pricing and margin calculator, allocation rounding, commission model, loyalty point calculation, each task evaluator, recommendation scorer and re-ranker, OTP hashing and validation, email and username normalization, search-key folding, state machines.
-- Integration tests (`*IT`, Failsafe): `@SpringBootTest` + MockMvc + Testcontainers PostgreSQL 16, running the real Liquibase changelog. Shared base class; one container per test run.
-
-**Required test cases (must exist and pass):**
-
-| Area | Cases |
-|---|---|
-| OTP lifecycle | request → verify → session; wrong code; expired code; reused code; max attempts locks challenge; new request supersedes old; resend cooldown; profile completion required for new users |
-| Rate limits | per email, per IP, lockout after locked challenges, `Retry-After` present |
-| Enumeration | identical status and body for registered and unregistered emails |
-| Secrets in logs | OTP never appears in captured log output (`OutputCaptureExtension`) or any response body |
-| Sessions | rotation on sign-in, logout, logout-all, idle and absolute expiry, suspended user rejected |
-| CSRF and Origin | POST without CSRF token → 403; foreign `Origin` → 403 |
-| Authorization | public GETs without a session → 200; cart without session → 401; customer on admin API → 403; other user's order → 404; `PROFILE_INCOMPLETE` user blocked from cart |
-| Mass assignment | unknown fields such as `role`, `price`, `status`, `points` rejected with 400 |
-| Pricing | formulas, rounding, allocation remainder, commission model, the worked example yields 1.55 / 5.54% |
-| Margin rules | publish blocked when failing; checkout rejects an offer that became unsellable |
-| Server-side pricing | checkout ignores any client-sent price and uses server values |
-| Inventory | 20 concurrent checkouts for 5 units → exactly 5 succeed and inventory is consistent; release on expiry and on payment failure; restock on refund |
-| Orders | illegal state transitions rejected; idempotent checkout and payment confirmation |
-| Points | awarded at the award trigger only (never on placement); duplicate event → single award; reversal on refund; redemption deducted and reversed on cancel; negative-balance policy |
-| Tasks | distinct partners completes on the third partner; refund reverses the reward; minimum order value respected |
-| Referrals | self-referral rejected; reward after qualifying first purchase; monthly cap; suspicious case goes to review |
-| Tiers | thresholds; redemption does not lower the tier |
-| Membership | Plus earned at the spend threshold; admin assignment; expiry to FREE |
-| Recommendations | eligibility excludes expired, sold-out, unsellable and (for FREE) Plus-only offers; expected ranking order for known profiles; diversity and frequency caps; cold-start fallback; weights must sum to 100; reasons present |
-| Uploads | wrong type, oversize and fake magic bytes rejected; EXIF stripped after re-encoding |
-| i18n | `Accept-Language` az/en produce localized validation messages |
-| Demo data | every demo offer sellable; demo ledgers reconcile |
-
-### 19.2 Frontend (Vitest + Testing Library + jsdom)
-- Public browsing renders home, explore and offer detail without a session.
-- Anonymous Add to cart stores the pending action and navigates to `/auth` with `returnTo`.
-- After successful OTP verification the pending action runs and the user returns to the original page.
-- `safeReturnTo` rejects `//evil.example`, `https://evil.example`, `/\evil` and `javascript:` values.
-- Language switch changes visible text, `<html lang>` and money/date formats; az/en translation keys have parity.
-- Theme switch sets `data-theme` and persists the choice.
-- OtpInput: numeric only, paste of six digits, correct `autocomplete`.
-- Error states show localized messages for API error codes.
-- Mobile tab bar and filter sheet render and open correctly.
-
-### 19.3 End-to-end and responsive (Playwright, Chromium)
-- Viewports 320×568, 375×667, 393×852, 430×932, 768×1024, 1280×800: no horizontal overflow (`scrollWidth ≤ innerWidth`) on home, explore, offer detail, cart, auth and account.
-- Smoke flow: browse → offer detail → Add to cart → auth gate → (dev mailbox) OTP → item in cart → checkout → sandbox success → voucher visible.
-- WebKit is not installed in the build container; Safari behaviour is verified manually with the checklist in §17.7.
-
-### 19.4 Commands (results reported exactly as run)
-```
-cd backend  && ./gradlew build
-cd frontend && npm ci && npm run lint && npm run typecheck && npm test -- --run && npm run build
-cd frontend && npx playwright test          (stack running)
-docker compose up --build
-```
+**Owner decision:** the project ships **without automated tests** (no backend unit or integration tests, no frontend tests); the Gradle `test` task is disabled. Verification is done by building (`cd backend && ./gradlew build`, `cd frontend && npm run build`) and by manual smoke checks of the running stack (`docker compose up --build`).
 
 ---
 
 ## 20. Implementation phases
 
+> Test items in the phase checklists below are superseded by §19: the project ships without automated tests.
+
 Vertical slices: each phase delivers backend, frontend, migrations, admin APIs and tests for its feature, so integration problems surface early. The admin **UI** is built in Phase 7; admin **APIs** are built in the phase that owns the feature.
 
-**Routine for every phase:** Liquibase changesets → entities, repositories, services, controllers, DTOs → backend tests → frontend pages and components with az + en keys → frontend tests → run `./gradlew build` and `npm run lint && npm run typecheck && npm test -- --run && npm run build` → manual smoke test through the Vite proxy → commit `Phase N: <summary>` and push.
+**Routine for every phase:** Liquibase changesets → entities, repositories, services, controllers, DTOs → frontend pages and components with az + en keys → run `./gradlew build` and `npm run build` → manual smoke test through the Vite proxy → commit `Phase N: <summary>` and push.
 
 ### Phase 0 — Foundations
 - [ ] Monorepo skeleton: `/backend` (Spring Boot 3.5.16, Java 21, Gradle Wrapper), `/frontend` (Vite + React + TS), root `.gitignore`, `.editorconfig`, `.env.example`, `docker-compose.yml` (postgres:16-alpine, axllent/mailpit), README stub
-- [ ] Backend: `@ConfigurationProperties` records, `Clock` bean, Problem Details handler, request-id filter, `MessageSource` az/en, Liquibase master + `001`–`003`, actuator health, springdoc, security skeleton (public catalog GETs, CSRF, Origin check, headers)
+- [ ] Backend: `@ConfigurationProperties` records, `Clock` bean, Problem Details handler, request-id filter, `MessageSource` az/en, Liquibase master + `001`–`003`, springdoc, security skeleton (public catalog GETs, CSRF, Origin check, headers)
 - [ ] Frontend: tokens and global styles, AppShell (glass header, mobile tab bar), router, i18n (az/en), theme provider + `theme-init.js`, API client, error boundary, not-found page, demo banner
 - [ ] Testcontainers base class; Vitest setup; ESLint/Prettier
 - **Done when:** backend context-load IT passes on PostgreSQL; frontend lint, typecheck, tests and build pass; `docker compose up db mailpit` works.
@@ -1262,7 +1210,7 @@ Vertical slices: each phase delivers backend, frontend, migrations, admin APIs a
 ### 21.2 Frontend Dockerfile (multi-stage)
 - Build stage: `node:22-alpine`, `npm ci && npm run build`.
 - Runtime stage: `nginxinc/nginx-unprivileged:1.29-alpine` (non-root, listens on 8080) with `nginx/default.conf.template`; the image's entrypoint substitutes `${PORT}` and `${API_UPSTREAM}` at start.
-- Nginx essentials: `listen ${PORT}`; `location / { try_files $uri $uri/ /index.html; }`; long-lived immutable caching for `/assets/`; `Cache-Control: no-cache` for `index.html`; `location /api/ { proxy_pass ${API_UPSTREAM}; }` forwarding `X-Forwarded-For`, `X-Forwarded-Proto` and `X-Request-Id`, with `proxy_ssl_server_name on` for HTTPS upstreams and runtime DNS resolution (resolver + variable) so Nginx starts even if the backend is not up yet; `client_max_body_size 3m`; gzip; security headers (§14.2); `location = /healthz { return 200; }`.
+- Nginx essentials: `listen ${PORT}`; `location / { try_files $uri $uri/ /index.html; }`; long-lived immutable caching for `/assets/`; `Cache-Control: no-cache` for `index.html`; `location /api/ { proxy_pass ${API_UPSTREAM}; }` forwarding `X-Forwarded-For`, `X-Forwarded-Proto` and `X-Request-Id`, with `proxy_ssl_server_name on` for HTTPS upstreams and runtime DNS resolution (resolver + variable) so Nginx starts even if the backend is not up yet; `client_max_body_size 3m`; gzip; security headers (§14.2).
 
 ### 21.3 Docker Compose (local)
 | Service | Image / build | Ports | Notes |
