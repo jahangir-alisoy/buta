@@ -50,19 +50,20 @@ spring:
       max-file-size: 3MB
       max-request-size: 3MB
   mail:
-    host: ${SMTP_HOST:localhost}
-    port: ${SMTP_PORT:1025}
-    username: ${SMTP_USERNAME:}
-    password: ${SMTP_PASSWORD:}
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_APP_PASSWORD:}
     properties:
       mail:
         smtp:
-          auth: ${SMTP_AUTH:false}
+          auth: true
           starttls:
-            enable: ${SMTP_STARTTLS:false}
-          connectiontimeout: 5000
-          timeout: 5000
-          writetimeout: 5000
+            enable: true
+            required: true
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
   threads:
     virtual:
       enabled: true
@@ -116,8 +117,8 @@ app:
     lockout-window: PT1H
     lockout-duration: PT30M
   mail:
-    provider: ${APP_MAIL_PROVIDER:smtp}
-    from: ${MAIL_FROM:Buta <no-reply@buta.test>}
+    provider: smtp
+    from: "Buta <${MAIL_USERNAME:no-reply@buta.test}>"
     dev-mailbox-enabled: ${APP_DEV_MAILBOX_ENABLED:false}
   payment:
     provider: ${APP_PAYMENT_PROVIDER:sandbox}

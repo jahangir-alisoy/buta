@@ -1,10 +1,10 @@
 FROM eclipse-temurin:21-jdk-alpine AS build
 WORKDIR /workspace
-COPY .mvn .mvn
-COPY mvnw pom.xml ./
-RUN chmod +x mvnw && ./mvnw -B -q dependency:go-offline
+COPY gradlew settings.gradle.kts build.gradle.kts ./
+COPY gradle gradle
+RUN chmod +x gradlew && ./gradlew --no-daemon -q dependencies > /dev/null
 COPY src src
-RUN ./mvnw -B -q -DskipTests package && cp target/*.jar app.jar
+RUN ./gradlew --no-daemon -q bootJar && cp build/libs/app.jar app.jar
 
 FROM eclipse-temurin:21-jre-alpine
 RUN addgroup -S buta && adduser -S -G buta -u 10001 buta

@@ -1,3 +1,15 @@
+spring:
+  mail:
+    host: localhost
+    port: 1025
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+            required: false
+
 app:
   mail:
     dev-mailbox-enabled: ${APP_DEV_MAILBOX_ENABLED:false}

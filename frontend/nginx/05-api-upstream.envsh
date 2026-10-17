@@ -1,0 +1,7 @@
+#!/bin/sh
+API_UPSTREAM="${API_UPSTREAM%/}"
+case "$API_UPSTREAM" in
+  http://*|https://*) ;;
+  *) API_UPSTREAM="http://$API_UPSTREAM" ;;
+esac
+export API_UPSTREAM

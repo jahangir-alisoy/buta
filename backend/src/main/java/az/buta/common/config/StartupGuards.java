@@ -42,6 +42,9 @@ public class StartupGuards implements InitializingBean {
             if ("in-memory".equals(properties.mail().provider())) {
                 problems.add("The in-memory email provider is not allowed in production");
             }
+            if (isBlank(environment.getProperty("spring.mail.username")) || isBlank(environment.getProperty("spring.mail.password"))) {
+                problems.add("MAIL_USERNAME and MAIL_APP_PASSWORD are required in production");
+            }
             if ("sandbox".equals(properties.payment().provider()) && !properties.demoMode()) {
                 problems.add("Sandbox payments require APP_DEMO_MODE=true so the demo is clearly labeled");
             }
@@ -56,5 +59,9 @@ public class StartupGuards implements InitializingBean {
 
     private static boolean tooShort(String secret) {
         return secret == null || secret.getBytes(StandardCharsets.UTF_8).length < MIN_SECRET_BYTES;
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 }

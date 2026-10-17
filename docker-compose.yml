@@ -38,9 +38,7 @@ services:
       DB_USER: ${DB_USER:-buta}
       DB_PASSWORD: ${DB_PASSWORD:-buta}
       DB_SSL_MODE: disable
-      SMTP_HOST: mailpit
-      SMTP_PORT: 1025
-      MAIL_FROM: ${MAIL_FROM:-Buta <no-reply@buta.test>}
+      SPRING_MAIL_HOST: mailpit
       APP_DEMO_MODE: ${APP_DEMO_MODE:-true}
       APP_LIQUIBASE_CONTEXTS: ${APP_LIQUIBASE_CONTEXTS:-default,demo}
       APP_PUBLIC_BASE_URL: ${APP_PUBLIC_BASE_URL:-http://localhost:8081}
@@ -59,7 +57,7 @@ services:
       backend:
         condition: service_healthy
     environment:
-      API_UPSTREAM: backend:8080
+      API_UPSTREAM: http://backend:8080
     ports:
       - "127.0.0.1:8081:8080"
 

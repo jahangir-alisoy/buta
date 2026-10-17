@@ -57,12 +57,12 @@ The backend refuses to start when:
 
 - [ ] All secrets set in Render (generated randomly), never committed; rotation procedure documented
 - [ ] HTTPS only with a custom domain, HSTS enabled, `__Host-` session cookie
-- [ ] SMTP provider configured with SPF, DKIM and DMARC for the sender domain
+- [ ] Gmail sender account protected with 2-Step Verification; the app password is stored only in Render and revoked if leaked (for higher volume or a custom sender domain, move to a transactional email provider)
 - [ ] Dev mailbox off, API docs off (`APP_API_DOCS_ENABLED=false`), `demo` Liquibase context removed for a real launch
 - [ ] `APP_ADMIN_EMAILS` reviewed; admin accounts reviewed regularly
 - [ ] Database backups / point-in-time recovery enabled and a restore tested
 - [ ] Application database user is not a superuser
-- [ ] Dependency scanning (Maven and `npm audit`) and container image scanning in CI
+- [ ] Dependency scanning (Gradle and `npm audit`) and container image scanning in CI
 - [ ] Logs verified free of OTPs, tokens, cookies and raw emails; retention configured
 - [ ] Rate limits tuned; distributed rate limiting before running more than one backend instance
 - [ ] Monitoring and alerting (health, error rate, latency, failed sign-ins, OTP lockouts)
