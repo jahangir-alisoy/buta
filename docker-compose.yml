@@ -1,0 +1,67 @@
+name: buta
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-buta}
+      POSTGRES_USER: ${DB_USER:-buta}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-buta}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "127.0.0.1:8025:8025"
+      - "127.0.0.1:1025:1025"
+
+  backend:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-buta}
+      DB_USER: ${DB_USER:-buta}
+      DB_PASSWORD: ${DB_PASSWORD:-buta}
+      DB_SSL_MODE: disable
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      MAIL_FROM: ${MAIL_FROM:-Buta <no-reply@buta.test>}
+      APP_DEMO_MODE: ${APP_DEMO_MODE:-true}
+      APP_LIQUIBASE_CONTEXTS: ${APP_LIQUIBASE_CONTEXTS:-default,demo}
+      APP_PUBLIC_BASE_URL: ${APP_PUBLIC_BASE_URL:-http://localhost:8081}
+      APP_ALLOWED_ORIGINS: ${APP_ALLOWED_ORIGINS:-http://localhost:5173}
+      APP_ADMIN_EMAILS: ${APP_ADMIN_EMAILS:-admin@buta.test}
+      APP_OTP_PEPPER: ${APP_OTP_PEPPER:-dev-only-otp-pepper-change-me-0123456789abcdef}
+      APP_IP_HASH_SECRET: ${APP_IP_HASH_SECRET:-dev-only-ip-hash-secret-change-me-0123456789}
+      APP_SESSION_COOKIE_SECURE: "false"
+      APP_SESSION_COOKIE_NAME: buta_session
+    ports:
+      - "127.0.0.1:8080:8080"
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      API_UPSTREAM: backend:8080
+    ports:
+      - "127.0.0.1:8081:8080"
+
+volumes:
+  db-data:
