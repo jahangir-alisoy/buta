@@ -127,11 +127,10 @@ interface SegmentedProps<T extends string> {
 
 export function Segmented<T extends string>({ options, value, onChange, label }: SegmentedProps<T>) {
   const selected = options.findIndex((option) => option.value === value);
-  const lens = useGlassLens(selected, (index) => onChange(options[index].value));
-  const className = ['segmented', selected >= 0 && 'has-selection', lens.dragging && 'is-dragging', lens.ready && 'is-ready'].filter(Boolean).join(' ');
+  const lens = useGlassLens<HTMLDivElement>(selected, (index) => onChange(options[index].value));
   return (
-    <div ref={lens.trackRef} className={className} role="group" aria-label={label} {...lens.handlers}>
-      <span ref={lens.lensRef} className="segmented-lens" aria-hidden="true" />
+    <div ref={lens.trackRef} className={`segmented ${lens.trackClassName}`} role="group" aria-label={label} {...lens.handlers}>
+      <span ref={lens.lensRef} className="glass-lens" aria-hidden="true" />
       {options.map((option, index) => (
         <button
           key={option.value}

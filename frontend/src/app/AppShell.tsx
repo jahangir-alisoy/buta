@@ -9,6 +9,7 @@ import { useAuth } from '../features/auth/AuthProvider';
 import { useAppearance } from '../features/account/useAppearance';
 import { UserAvatar } from '../features/account/UserAvatar';
 import { LiveSearch } from '../features/catalog/LiveSearch';
+import { MainNav } from './MainNav';
 
 const SEARCH_PAGES = ['/explore', '/bundles', '/events', '/categories'];
 
@@ -48,7 +49,7 @@ function NavigationProgress() {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
-  const { user, isActive, isAdmin } = useAuth();
+  const { user, isActive } = useAuth();
   const location = useLocation();
   const cartCount = useCartCount();
   const navClass = ({ isActive: active }: { isActive: boolean }) => (active ? 'active' : undefined);
@@ -65,28 +66,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <BrandMark />
             <span>{t('common.appName')}</span>
           </Link>
-          <nav className="main-nav" aria-label={t('common.menu')}>
-            <NavLink to="/explore" className={navClass}>
-              {t('nav.explore')}
-            </NavLink>
-            <NavLink to="/bundles" className={navClass}>
-              {t('nav.bundles')}
-            </NavLink>
-            <NavLink to="/events" className={navClass}>
-              {t('nav.events')}
-            </NavLink>
-            <NavLink to="/partners" className={navClass}>
-              {t('nav.partners')}
-            </NavLink>
-            <NavLink to="/for-you" className={navClass}>
-              {t('nav.forYou')}
-            </NavLink>
-            {isAdmin && (
-              <NavLink to="/admin" className={navClass}>
-                {t('nav.admin')}
-              </NavLink>
-            )}
-          </nav>
+          <MainNav />
           {!SEARCH_PAGES.some((prefix) => location.pathname.startsWith(prefix)) && <LiveSearch className="header-search" />}
           <div className="header-actions">
             <Link to="/explore" className="icon-btn mobile-only" aria-label={t('common.search')}>

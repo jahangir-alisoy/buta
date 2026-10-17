@@ -37,6 +37,7 @@
 
 .main-nav {
   display: none;
+  align-items: center;
   gap: 4px;
   margin-left: var(--space-4);
 }
@@ -48,19 +49,19 @@
   font-weight: 500;
   color: var(--color-text-secondary);
   border: 1px solid transparent;
-  transition: color var(--dur-fast), background-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .main-nav a.active {
   color: var(--color-text);
-  background-color: var(--lg-fill-strong);
-  background-image: var(--lg-sheen);
-  border-color: var(--lg-border);
-  box-shadow: var(--lg-rim), var(--lg-depth);
+}
+
+.main-nav.is-dragging a.active:not(.is-under-lens) {
+  color: var(--color-text-secondary);
 }
 
 @media (hover: hover) {
-  .main-nav a:not(.active):hover {
+  .main-nav:not(.is-dragging) a:not(.active):hover {
     color: var(--color-text);
     background-color: var(--lg-fill);
   }

@@ -36,7 +36,7 @@ public class EmailTemplateRenderer {
 
     private static String layout(String title, String content) {
         return "<!doctype html><html><body style=\"font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#0e1116\">"
-                + "<h2 style=\"margin:0 0 16px\">" + escape(title) + "</h2>" + content + "<p style=\"color:#999;font-size:12px\">Buta</p></body></html>";
+                + "<h2 style=\"margin:0 0 16px\">" + escape(title) + "</h2>" + content + "<p style=\"color:#999;font-size:12px\">Naxış</p></body></html>";
     }
 
     private static String escape(String value) {
