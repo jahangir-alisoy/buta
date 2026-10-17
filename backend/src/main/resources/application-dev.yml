@@ -1,0 +1,7 @@
+app:
+  mail:
+    dev-mailbox-enabled: ${APP_DEV_MAILBOX_ENABLED:false}
+
+logging:
+  level:
+    az.buta: DEBUG

@@ -1,0 +1,27 @@
+databaseChangeLog:
+  - include:
+      file: db/changelog/changes/001-extensions.sql
+  - include:
+      file: db/changelog/changes/002-identity-audit-settings.sql
+  - include:
+      file: db/changelog/changes/003-settings-defaults.sql
+  - include:
+      file: db/changelog/changes/004-catalog.sql
+  - include:
+      file: db/changelog/changes/005-catalog-reference-data.sql
+  - include:
+      file: db/changelog/changes/006-commerce.sql
+  - include:
+      file: db/changelog/changes/007-membership-loyalty.sql
+  - include:
+      file: db/changelog/changes/008-loyalty-reference-data.sql
+  - include:
+      file: db/changelog/changes/009-personalization.sql
+  - include:
+      file: db/changelog/changes/901-demo-catalog.sql
+  - include:
+      file: db/changelog/changes/902-demo-users.sql
+  - include:
+      file: db/changelog/changes/903-demo-orders.sql
+  - include:
+      file: db/changelog/changes/904-demo-loyalty.sql

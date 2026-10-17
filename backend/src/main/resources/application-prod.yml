@@ -1,0 +1,23 @@
+spring:
+  liquibase:
+    contexts: ${APP_LIQUIBASE_CONTEXTS:default}
+
+app:
+  demo-mode: ${APP_DEMO_MODE:false}
+  session:
+    cookie-name: ${APP_SESSION_COOKIE_NAME:__Host-buta_session}
+    cookie-secure: ${APP_SESSION_COOKIE_SECURE:true}
+  otp:
+    pepper: ${APP_OTP_PEPPER:}
+  ip-hash-secret: ${APP_IP_HASH_SECRET:}
+
+springdoc:
+  api-docs:
+    enabled: ${APP_API_DOCS_ENABLED:false}
+  swagger-ui:
+    enabled: ${APP_API_DOCS_ENABLED:false}
+
+logging:
+  structured:
+    format:
+      console: ecs

@@ -1,0 +1,17 @@
+spring:
+  liquibase:
+    contexts: default,demo
+
+app:
+  demo-mode: true
+  public-base-url: http://localhost:5173
+  mail:
+    provider: in-memory
+  admin-emails: admin@buta.test,bootstrap.admin@buta.test
+  jobs:
+    enabled: false
+
+logging:
+  level:
+    root: WARN
+    az.buta: INFO

@@ -1,0 +1,84 @@
+databases:
+  - name: buta-db
+    databaseName: buta
+    user: buta
+    plan: free
+    postgresMajorVersion: "16"
+
+services:
+  - type: web
+    name: buta-backend
+    runtime: docker
+    plan: free
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    healthCheckPath: /actuator/health/readiness
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DB_HOST
+        fromDatabase:
+          name: buta-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: buta-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: buta-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: buta-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: buta-db
+          property: password
+      - key: DB_SSL_MODE
+        value: prefer
+      - key: APP_DEMO_MODE
+        value: "true"
+      - key: APP_LIQUIBASE_CONTEXTS
+        value: default,demo
+      - key: APP_OTP_PEPPER
+        generateValue: true
+      - key: APP_IP_HASH_SECRET
+        generateValue: true
+      - key: APP_SESSION_COOKIE_SECURE
+        value: "true"
+      - key: APP_PUBLIC_BASE_URL
+        sync: false
+      - key: APP_ADMIN_EMAILS
+        sync: false
+      - key: APP_MAIL_PROVIDER
+        value: smtp
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USERNAME
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_AUTH
+        value: "true"
+      - key: SMTP_STARTTLS
+        value: "true"
+      - key: MAIL_FROM
+        sync: false
+
+  - type: web
+    name: buta-frontend
+    runtime: docker
+    plan: free
+    dockerContext: ./frontend
+    dockerfilePath: ./frontend/Dockerfile
+    healthCheckPath: /healthz
+    envVars:
+      - key: API_UPSTREAM
+        fromService:
+          type: web
+          name: buta-backend
+          property: hostport
