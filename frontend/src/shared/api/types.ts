@@ -320,6 +320,16 @@ export interface LoyaltySummary {
   tiers: Tier[];
 }
 
+export interface PlusPlan {
+  price: Money;
+  periodDays: number;
+  forSale: boolean;
+  canPurchase: boolean;
+  plan: 'FREE' | 'PLUS';
+  source: string;
+  endsAt?: string;
+}
+
 export interface LedgerEntry {
   id: string;
   type: string;

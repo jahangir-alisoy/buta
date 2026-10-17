@@ -1,13 +1,14 @@
 import { Link } from 'react-router';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Award, Check, Crown, Gift, Users } from 'lucide-react';
+import { Award, Check, Gift, Users } from 'lucide-react';
 import { accountApi } from '../../shared/api/endpoints';
 import type { LoyaltySummary, LoyaltyTask } from '../../shared/api/types';
 import { formatDate, formatMoney, formatNumber } from '../../shared/format';
 import { ErrorState, Skeleton } from '../../design-system/components/States';
 import { CopyButton } from '../../design-system/components/CopyButton';
 import { PageLoader } from '../../app/PageLoader';
+import { PlusOffer } from './PlusOffer';
 
 function Progress({ value, label }: { value: number; label: string }) {
   const percent = Math.max(0, Math.min(100, value));
@@ -23,15 +24,11 @@ function FreeMember({ summary }: { summary: LoyaltySummary }) {
   const spend = summary.qualifyingSpend;
   const percent = (Number(spend.spent.amount) / Math.max(1, Number(spend.threshold.amount))) * 100;
   return (
-    <section className="feature-band">
-      <div className="stack">
-        <span className="badge badge-plus" style={{ alignSelf: 'flex-start' }}>
-          <Crown size={14} aria-hidden="true" /> {t('common.plus')}
-        </span>
-        <h2 className="section-title">{t('loyalty.freeTitle')}</h2>
-        <p className="muted">{t('loyalty.freeText', { threshold: formatMoney(spend.threshold), days: spend.windowDays })}</p>
-      </div>
-      <div className="card stack">
+    <div className="plus-layout">
+      <PlusOffer />
+      <section className="card stack">
+        <h2 className="offer-title">{t('loyalty.freeTitle')}</h2>
+        <p className="small muted">{t('plus.orEarn', { threshold: formatMoney(spend.threshold), days: spend.windowDays })}</p>
         <div className="row spread">
           <span className="small muted">{t('loyalty.qualifyingSpend')}</span>
           <strong>
@@ -41,11 +38,11 @@ function FreeMember({ summary }: { summary: LoyaltySummary }) {
         <Progress value={percent} label={t('loyalty.qualifyingSpend')} />
         <p className="small">{t('loyalty.spendProgress', { remaining: formatMoney(spend.remaining) })}</p>
         <p className="caption tertiary">{t('loyalty.spendNote')}</p>
-        <Link to="/explore" className="btn btn-primary">
+        <Link to="/explore" className="btn btn-secondary">
           {t('cart.browse')}
         </Link>
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }
 
@@ -158,6 +155,7 @@ function PlusMember({ summary }: { summary: LoyaltySummary }) {
   return (
     <>
       {summary.redemptionBlocked && <p className="alert alert-warning">{t('loyalty.redemptionBlocked')}</p>}
+      <PlusOffer />
       <div className="stat-grid">
         <div className="stat">
           <div className="caption muted">{t('loyalty.available')}</div>

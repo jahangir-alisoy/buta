@@ -80,7 +80,7 @@ export default function ForYouPage() {
           <span>
             {t('forYou.plusText')}{' '}
             <Link to="/rewards" className="section-link">
-              {t('home.plusCta')}
+              {t('offer.getPlus')}
             </Link>
           </span>
         </div>

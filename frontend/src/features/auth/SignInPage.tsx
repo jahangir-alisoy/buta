@@ -239,7 +239,7 @@ export default function SignInPage() {
                   <Field
                     id="username"
                     label={t('auth.username')}
-                    hint={availability === 'available' ? t('auth.usernameAvailable') : t('auth.usernameHint')}
+                    hint={availability === 'available' ? t('auth.usernameAvailable') : undefined}
                     error={fieldError(errors, 'username') ?? (availability === 'taken' ? t('auth.usernameTaken') : undefined)}
                   >
                     <input

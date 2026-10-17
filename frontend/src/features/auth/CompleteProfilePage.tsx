@@ -70,8 +70,7 @@ export default function CompleteProfilePage() {
   };
 
   const set = (key: keyof typeof form) => (value: string) => setForm((current) => ({ ...current, [key]: value }));
-  const usernameHint =
-    availability === 'available' ? t('auth.usernameAvailable') : availability === 'taken' ? t('auth.usernameTaken') : t('auth.usernameHint');
+  const usernameHint = availability === 'available' ? t('auth.usernameAvailable') : undefined;
 
   return (
     <div className="container auth-shell">

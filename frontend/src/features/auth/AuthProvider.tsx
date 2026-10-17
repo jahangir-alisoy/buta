@@ -14,7 +14,7 @@ interface AuthContextValue {
   isPlus: boolean;
   setUser: (user: CurrentUser | null) => void;
   refresh: () => Promise<CurrentUser | null>;
-  logout: (everywhere?: boolean) => Promise<void>;
+  logout: () => Promise<void>;
   requireAuth: (action: PendingAction) => boolean;
 }
 
@@ -53,9 +53,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [setUser]);
 
   const logout = useCallback(
-    async (everywhere = false) => {
+    async () => {
       try {
-        await (everywhere ? authApi.logoutAll() : authApi.logout());
+        await authApi.logout();
       } finally {
         setUser(null);
         queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'session' });

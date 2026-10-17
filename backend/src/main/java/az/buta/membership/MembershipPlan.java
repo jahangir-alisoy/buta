@@ -12,6 +12,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
@@ -79,5 +80,17 @@ public class MembershipPlan extends NewAwareEntity<PlanCode> {
 
     public boolean purchasable() {
         return purchasable;
+    }
+
+    public BigDecimal price() {
+        return price;
+    }
+
+    public boolean isForSale() {
+        return purchasable && price != null && price.signum() > 0;
+    }
+
+    public Duration billingDuration() {
+        return "YEAR".equals(billingPeriod) ? Duration.ofDays(365) : Duration.ofDays(30);
     }
 }

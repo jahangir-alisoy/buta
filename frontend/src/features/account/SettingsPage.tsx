@@ -19,11 +19,14 @@ const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 function ProfileSection() {
   const { t } = useTranslation();
   const toast = useToast();
-  const { user, setUser } = useAuth();
+  const { user, setUser, refresh } = useAuth();
+  const input = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({ firstName: user?.firstName ?? '', lastName: user?.lastName ?? '', username: user?.username ?? '', phone: user?.phone ?? '' });
   const [errors, setErrors] = useState<FieldError[]>([]);
   const [busy, setBusy] = useState(false);
+  const [avatarBusy, setAvatarBusy] = useState(false);
   const errorFor = (field: string) => errors.find((error) => error.field === field)?.message;
+  const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`.toUpperCase();
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -48,40 +51,6 @@ function ProfileSection() {
     }
   };
 
-  const set = (key: keyof typeof form) => (event: ChangeEvent<HTMLInputElement>) => setForm((current) => ({ ...current, [key]: event.target.value }));
-
-  return (
-    <form className="card stack" onSubmit={submit} noValidate>
-      <h2 className="section-title">{t('account.profile')}</h2>
-      <div className="form-grid">
-        <Field id="settings-first" label={t('auth.firstName')} error={errorFor('firstName')}>
-          <input id="settings-first" className="input" autoComplete="given-name" maxLength={50} value={form.firstName} onChange={set('firstName')} />
-        </Field>
-        <Field id="settings-last" label={t('auth.lastName')} error={errorFor('lastName')}>
-          <input id="settings-last" className="input" autoComplete="family-name" maxLength={50} value={form.lastName} onChange={set('lastName')} />
-        </Field>
-        <Field id="settings-username" label={t('auth.username')} hint={t('auth.usernameHint')} error={errorFor('username')}>
-          <input id="settings-username" className="input" autoCapitalize="none" maxLength={30} value={form.username} onChange={set('username')} />
-        </Field>
-        <Field id="settings-phone" label={`${t('account.phone')} (${t('common.optional')})`} hint={t('account.phoneHint')} error={errorFor('phone')}>
-          <input id="settings-phone" className="input" type="tel" inputMode="tel" autoComplete="tel" maxLength={16} value={form.phone} onChange={set('phone')} />
-        </Field>
-      </div>
-      <button type="submit" className="btn btn-primary" disabled={busy} style={{ alignSelf: 'flex-start' }}>
-        {busy ? t('common.saving') : t('common.save')}
-      </button>
-    </form>
-  );
-}
-
-function AvatarSection() {
-  const { t } = useTranslation();
-  const toast = useToast();
-  const { user, setUser, refresh } = useAuth();
-  const input = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState(false);
-  const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`.toUpperCase();
-
   const upload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = '';
@@ -92,51 +61,68 @@ function AvatarSection() {
       toast.show(t('account.avatarHint'), 'error');
       return;
     }
-    setBusy(true);
+    setAvatarBusy(true);
     try {
       setUser(await accountApi.uploadAvatar(file));
       toast.show(t('account.saved'));
     } catch (failure) {
       toast.show(errorMessage(failure, t('errors.generic')), 'error');
     } finally {
-      setBusy(false);
+      setAvatarBusy(false);
     }
   };
 
-  const remove = async () => {
-    setBusy(true);
+  const removeAvatar = async () => {
+    setAvatarBusy(true);
     try {
       await accountApi.removeAvatar();
       await refresh();
     } catch (failure) {
       toast.show(errorMessage(failure, t('errors.generic')), 'error');
     } finally {
-      setBusy(false);
+      setAvatarBusy(false);
     }
   };
 
+  const set = (key: keyof typeof form) => (event: ChangeEvent<HTMLInputElement>) => setForm((current) => ({ ...current, [key]: event.target.value }));
+
   return (
-    <section className="card stack">
-      <h2 className="section-title">{t('account.avatar')}</h2>
-      <div className="row wrap" style={{ gap: 16 }}>
+    <form className="card stack profile-card" onSubmit={submit} noValidate>
+      <div className="profile-head">
         {user?.avatarUrl ? <img className="avatar avatar-lg" src={apiUrl(user.avatarUrl)} alt="" /> : <span className="avatar avatar-lg">{initials}</span>}
-        <div className="stack" style={{ gap: 8 }}>
-          <div className="row wrap">
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => input.current?.click()} disabled={busy}>
-              <Upload size={16} aria-hidden="true" />
-              {t('account.uploadAvatar')}
+        <div className="profile-head-actions">
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => input.current?.click()} disabled={avatarBusy}>
+            <Upload size={16} aria-hidden="true" />
+            {t('account.uploadAvatar')}
+          </button>
+          {user?.avatarUrl && (
+            <button type="button" className="btn btn-ghost btn-sm" onClick={removeAvatar} disabled={avatarBusy}>
+              {t('account.removeAvatar')}
             </button>
-            {user?.avatarUrl && (
-              <button type="button" className="btn btn-ghost btn-sm" onClick={remove} disabled={busy}>
-                {t('account.removeAvatar')}
-              </button>
-            )}
-          </div>
-          <span className="caption muted">{t('account.avatarHint')}</span>
+          )}
         </div>
         <input ref={input} type="file" accept="image/jpeg,image/png" hidden onChange={upload} />
       </div>
-    </section>
+      <div className="form-grid">
+        <Field id="settings-first" label={t('auth.firstName')} error={errorFor('firstName')}>
+          <input id="settings-first" className="input" autoComplete="given-name" maxLength={50} value={form.firstName} onChange={set('firstName')} />
+        </Field>
+        <Field id="settings-last" label={t('auth.lastName')} error={errorFor('lastName')}>
+          <input id="settings-last" className="input" autoComplete="family-name" maxLength={50} value={form.lastName} onChange={set('lastName')} />
+        </Field>
+        <Field id="settings-username" label={t('auth.username')} error={errorFor('username')}>
+          <input id="settings-username" className="input" autoCapitalize="none" maxLength={30} value={form.username} onChange={set('username')} />
+        </Field>
+        <Field id="settings-phone" label={t('account.phone')} error={errorFor('phone')}>
+          <input id="settings-phone" className="input" type="tel" inputMode="tel" autoComplete="tel" maxLength={16} placeholder="+994" value={form.phone} onChange={set('phone')} />
+        </Field>
+      </div>
+      <div className="form-actions">
+        <button type="submit" className="btn btn-primary" disabled={busy}>
+          {busy ? t('common.saving') : t('common.save')}
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -277,7 +263,6 @@ export default function SettingsPage() {
         <h1 className="page-title">{t('nav.settings')}</h1>
       </header>
       <ProfileSection />
-      <AvatarSection />
       <EmailSection />
       <AppearanceSection />
     </div>

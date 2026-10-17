@@ -130,7 +130,8 @@
     "availability": "Availability",
     "salesEnd": "Sale ends",
     "perOrder": "Per order",
-    "upTo": "up to {{count}}"
+    "upTo": "up to {{count}}",
+    "getPlus": "Get Plus"
   },
   "productTypes": {
     "EVENT_TICKET": "Event ticket",
@@ -401,7 +402,6 @@
     "avatarHint": "JPEG or PNG, up to 2 MB.",
     "saved": "Saved",
     "membership": "Membership",
-    "logoutAll": "Sign out everywhere",
     "preferences": "Preferences",
     "privacyTitle": "Privacy and personalization",
     "personalization": "Personalized recommendations",
@@ -414,7 +414,6 @@
     "resetConfirm": "Delete your personalization data?",
     "resetDone": "Personalization data deleted.",
     "dataInfo": "We store your email, name, username, optional phone and photo, orders and points. Recommendation activity is stored only with your permission and kept for 180 days.",
-    "quickLinks": "Quick links",
     "adminConsole": "Admin console",
     "emailNotVerified": "Not confirmed"
   },
@@ -680,6 +679,32 @@
     },
     "audit": {
       "empty": "No audit entries."
+    }
+  },
+  "plus": {
+    "title": "Naxış Plus",
+    "perPeriod": "{{price}} / month",
+    "periodNote": "{{days}} days of Plus. No automatic renewal.",
+    "buy": "Get Plus",
+    "extend": "Extend Plus",
+    "activeUntil": "Active until {{date}}",
+    "sheetTitle": "Naxış Plus",
+    "plan": "Plan",
+    "period": "Period",
+    "periodValue": "{{days}} days",
+    "total": "Total",
+    "pay": "Pay {{price}}",
+    "paying": "Processing…",
+    "welcome": "Welcome to Naxış Plus!",
+    "extended": "Plus extended until {{date}}",
+    "orEarn": "Or unlock it free: spend {{threshold}} within {{days}} days.",
+    "benefits": {
+      "points": "Earn points on every purchase",
+      "tasks": "Tasks with bonus points",
+      "tiers": "Tiers with higher earning rates",
+      "redeem": "Use points to pay",
+      "picks": "Personal recommendations",
+      "exclusive": "Plus-only offers"
     }
   }
 }
