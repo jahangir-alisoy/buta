@@ -262,6 +262,7 @@
 
 .hero {
   position: relative;
+  z-index: 3;
 }
 
 .hero-inner {
@@ -1334,7 +1335,8 @@
   flex-direction: column;
   padding: 6px;
   border-radius: var(--radius-lg);
-  background: var(--color-surface-glass-strong);
+  border: 1px solid var(--lg-border);
+  background: var(--color-bg-solid);
   box-shadow: var(--shadow-3);
   max-height: min(70vh, 460px);
   overflow-y: auto;
@@ -1938,4 +1940,58 @@
   flex: 1 1 8em;
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.input-with-mark {
+  position: relative;
+}
+
+.input-with-mark .input {
+  padding-right: 46px;
+}
+
+.input-mark {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  width: 22px;
+  height: 22px;
+  margin-top: -11px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--color-bg-solid);
+  animation: mark-in 260ms var(--ease-spring);
+  pointer-events: none;
+}
+
+.input-mark.is-ok {
+  background: var(--color-success);
+}
+
+.input-mark.is-bad {
+  background: var(--color-danger);
+}
+
+@keyframes mark-in {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+
+.input-with-mark:has(.is-ok) .input {
+  border-color: var(--color-success);
+}
+
+.input-with-mark:has(.is-ok) .input:focus {
+  box-shadow: 0 0 0 4px var(--color-success-soft);
+}
+
+.input-with-mark:has(.is-bad) .input {
+  border-color: var(--color-danger);
+}
+
+.input-with-mark:has(.is-bad) .input:focus {
+  box-shadow: 0 0 0 4px var(--color-danger-soft);
 }

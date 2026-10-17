@@ -1,8 +1,13 @@
 const KEY = 'buta.referral';
 
-export function rememberReferral(code: string) {
+function normalize(code: string): string | null {
   const cleaned = code.trim().toUpperCase();
-  if (!/^[A-Z0-9]{4,16}$/.test(cleaned)) {
+  return /^[A-Z0-9]{4,16}$/.test(cleaned) ? cleaned : null;
+}
+
+export function rememberReferral(code: string) {
+  const cleaned = normalize(code);
+  if (!cleaned) {
     return;
   }
   try {
@@ -12,7 +17,11 @@ export function rememberReferral(code: string) {
   }
 }
 
-export function rememberedReferral(): string {
+export function rememberedReferral(fromLink?: string | null): string {
+  const linked = fromLink ? normalize(fromLink) : null;
+  if (linked) {
+    return linked;
+  }
   try {
     return sessionStorage.getItem(KEY) ?? '';
   } catch {
