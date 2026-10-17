@@ -86,6 +86,7 @@ app:
   session:
     cookie-name: ${APP_SESSION_COOKIE_NAME:buta_session}
     cookie-secure: ${APP_SESSION_COOKIE_SECURE:false}
+    cookie-same-site: ${APP_COOKIE_SAME_SITE:Lax}
     idle-timeout: ${APP_SESSION_IDLE_TIMEOUT:P7D}
     absolute-timeout: ${APP_SESSION_ABSOLUTE_TIMEOUT:P30D}
     admin-idle-timeout: ${APP_SESSION_ADMIN_IDLE_TIMEOUT:PT12H}

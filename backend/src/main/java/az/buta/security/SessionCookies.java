@@ -38,7 +38,7 @@ public class SessionCookies {
         return ResponseCookie.from(settings.cookieName(), value)
                 .httpOnly(true)
                 .secure(settings.cookieSecure())
-                .sameSite("Lax")
+                .sameSite(settings.cookieSameSite())
                 .path("/");
     }
 }

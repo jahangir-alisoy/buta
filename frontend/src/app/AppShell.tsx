@@ -7,6 +7,7 @@ import { BrandMark } from '../design-system/components/BrandMark';
 import { catalogApi, commerceApi } from '../shared/api/endpoints';
 import { useAuth } from '../features/auth/AuthProvider';
 import { useAppearance } from '../features/account/useAppearance';
+import { apiUrl } from '../shared/api/client';
 import type { ThemeChoice } from './PreferencesProvider';
 
 const THEME_ORDER: ThemeChoice[] = ['SYSTEM', 'LIGHT', 'DARK'];
@@ -23,7 +24,7 @@ function UserAvatar() {
     return null;
   }
   const initials = `${user.firstName?.[0] ?? user.email[0]}${user.lastName?.[0] ?? ''}`.toUpperCase();
-  return user.avatarUrl ? <img className="avatar" src={user.avatarUrl} alt="" /> : <span className="avatar">{initials}</span>;
+  return user.avatarUrl ? <img className="avatar" src={apiUrl(user.avatarUrl)} alt="" /> : <span className="avatar">{initials}</span>;
 }
 
 function HeaderSearch() {

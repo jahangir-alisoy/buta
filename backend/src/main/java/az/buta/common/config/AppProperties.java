@@ -26,7 +26,7 @@ public record AppProperties(
         adminEmails = adminEmails == null ? List.of() : adminEmails.stream().filter(value -> !value.isBlank()).map(value -> value.trim().toLowerCase(Locale.ROOT)).toList();
     }
 
-    public record Session(String cookieName, boolean cookieSecure, Duration idleTimeout, Duration absoluteTimeout,
+    public record Session(String cookieName, boolean cookieSecure, String cookieSameSite, Duration idleTimeout, Duration absoluteTimeout,
                           Duration adminIdleTimeout, Duration touchInterval) {
     }
 
