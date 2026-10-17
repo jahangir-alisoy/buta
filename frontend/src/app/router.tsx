@@ -5,8 +5,25 @@ import { RequireActive, RequireAdmin } from './guards';
 import { PageLoader } from './PageLoader';
 import NotFoundPage from '../features/info/NotFoundPage';
 
+const RELOAD_KEY = 'buta.chunkReload';
+
+async function loadPage(loader: () => Promise<{ default: ComponentType }>) {
+  try {
+    const module = await loader();
+    sessionStorage.removeItem(RELOAD_KEY);
+    return module;
+  } catch (error) {
+    if (!sessionStorage.getItem(RELOAD_KEY)) {
+      sessionStorage.setItem(RELOAD_KEY, '1');
+      window.location.reload();
+      return new Promise<never>(() => undefined);
+    }
+    throw error;
+  }
+}
+
 function page(loader: () => Promise<{ default: ComponentType }>) {
-  return async () => ({ Component: (await loader()).default });
+  return async () => ({ Component: (await loadPage(loader)).default });
 }
 
 export const router = createBrowserRouter([
