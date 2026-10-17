@@ -82,7 +82,7 @@ You don't need to create any tables; the backend creates the schema on first sta
 3. Under **Advanced**:
    - **Dockerfile Path:** `./backend/Dockerfile`
    - **Docker Build Context Directory:** `./backend`
-   - **Health Check Path:** `/actuator/health/readiness`
+   - **Health Check Path:** leave empty
 4. Under **Environment Variables**, add:
 
 | Key | Value |
@@ -103,7 +103,7 @@ You don't need to create any tables; the backend creates the schema on first sta
 | `APP_LIQUIBASE_CONTEXTS` | `default,demo` to load the demo catalog, or `default` for an empty catalog |
 
 5. Click **Create Web Service**. The first build takes a few minutes (Gradle downloads its dependencies).
-6. When the deploy succeeds, copy the service address shown at the top, e.g. `https://buta-api.onrender.com`. Check it works by opening `https://buta-api.onrender.com/actuator/health`; it should show `{"status":"UP"}`.
+6. When the deploy succeeds (the log shows `Started ButaApplication`), copy the service address shown at the top, e.g. `https://buta-api.onrender.com`. Check it works by opening `https://buta-api.onrender.com/api/v1/config`; it should show a small JSON with `"demoMode":true`.
 
 Notes:
 
@@ -124,7 +124,7 @@ Notes:
 3. Under **Advanced**:
    - **Dockerfile Path:** `./frontend/Dockerfile`
    - **Docker Build Context Directory:** `./frontend`
-   - **Health Check Path:** `/healthz`
+   - **Health Check Path:** leave empty
 4. Under **Environment Variables**, add one variable:
 
 | Key | Value |

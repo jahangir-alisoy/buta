@@ -17,7 +17,7 @@ The full product and engineering plan lives in [`docs/PROJECT_PLAN.md`](docs/PRO
 5. [Demo accounts and walkthrough](#demo-accounts-and-walkthrough)
 6. [Configuration](#configuration)
 7. [Database migrations (Liquibase)](#database-migrations-liquibase)
-8. [Tests and verification](#tests-and-verification)
+8. [Building and verification](#building-and-verification)
 9. [Deployment on Render](#deployment-on-render)
 10. [Business rules in short](#business-rules-in-short)
 11. [Decisions and deviations](#decisions-and-deviations)
@@ -28,7 +28,7 @@ The full product and engineering plan lives in [`docs/PROJECT_PLAN.md`](docs/PRO
 ## Repository layout
 
 ```
-/backend             Spring Boot 3.5 (Java 21, Gradle) REST API, Liquibase migrations, tests
+/backend             Spring Boot 3.5 (Java 21, Gradle) REST API and Liquibase migrations
 /frontend            React 19 + TypeScript + Vite SPA, Nginx runtime image
 /docs/PROJECT_PLAN.md  Requirements, architecture and delivery plan
 /docker-compose.yml  PostgreSQL, Mailpit, backend and frontend for local use
@@ -63,7 +63,6 @@ docker compose up --build
 | http://localhost:8081 | The web app (frontend + proxied API) |
 | http://localhost:8025 | Mailpit inbox — sign-in codes arrive here |
 | http://localhost:8080/api/v1/docs | Swagger UI (dev profile) |
-| http://localhost:8080/actuator/health | Backend health |
 
 Compose runs the backend with the `dev` profile, the `default,demo` Liquibase contexts (demo catalog, users, orders and loyalty data) and local-only secrets. Stop with `docker compose down` (add `-v` to wipe the database).
 
@@ -140,21 +139,16 @@ Business settings (pricing, loyalty, membership, recommendation weights) live in
 - Migrations run automatically on startup; Hibernate only validates the schema.
 - Production sets `APP_LIQUIBASE_CONTEXTS` explicitly (`default` for real launches, `default,demo` for the hosted demo).
 
-## Tests and verification
+## Building and verification
 
-**Backend** — run from `backend/` (integration tests need Docker for Testcontainers):
+The project has **no automated tests** (backend and frontend), as decided by the project owner; the Gradle `test` task is disabled. Quality gates are the builds:
 
 ```bash
-./gradlew build            # compile, unit tests (test) and integration tests (integrationTest)
-./gradlew test             # unit tests only
-./gradlew integrationTest  # Testcontainers integration tests only
+cd backend && ./gradlew build      # compiles and packages build/libs/app.jar
+cd frontend && npm run build       # strict TypeScript type-check + Vite production build
 ```
 
-Last run (Gradle): **24 unit tests** (pricing calculator incl. the worked bundle example, recommendation scoring and re-ranking, text rules) and **63 integration tests** against PostgreSQL 16 in Testcontainers — catalog browsing, the OTP auth flow and its abuse limits, authorization/IDOR, checkout and refunds, inventory concurrency (exactly 5 of 20 concurrent checkouts succeed for 5 units), loyalty tasks/tiers/referrals, recommendations, admin operations, profile and demo-data integrity. All passed.
-
-**Frontend** — per the project owner's instruction there is **no frontend test suite**; the frontend is verified by `npm run build` (strict TypeScript type-check + Vite production build), which passes.
-
-**Containers** — both images were built and the Compose stack was started; the SPA, deep links, `/healthz`, security headers, the `/api` proxy and a full OTP sign-in through Nginx (code received in Mailpit) were checked manually.
+Both builds pass. The Docker images were built and the Compose stack was started; the SPA, deep links, security headers, the `/api` proxy and a full OTP sign-in through Nginx (code received in Mailpit) were checked manually.
 
 ## Deployment on Render
 
@@ -175,7 +169,7 @@ Follow the step-by-step guide: **[docs/DEPLOY_RENDER.md](docs/DEPLOY_RENDER.md)*
 - **Liquibase** instead of Flyway, as requested.
 - **Opaque server-side sessions** instead of JWTs: instant revocation ("sign out everywhere", admin revoke) and no tokens readable by JavaScript.
 - **Global CSS design system** (tokens + component classes) instead of CSS Modules, and **plain controlled forms** instead of react-hook-form/zod: fewer dependencies for an MVP; the backend remains the source of truth for validation and returns field errors that the forms display.
-- **No frontend tests**, as instructed; quality gates are strict TypeScript and the production build.
+- **No automated tests** (backend or frontend) and **no health-check endpoints**, as instructed; quality gates are the Gradle build, strict TypeScript and the production build.
 - **Three.js** is isolated in a lazily loaded chunk and only starts after the page is interactive; a CSS gradient is shown when WebGL is unavailable or data saving is on.
 - **Admin settings forms** render the stored configuration generically, so labels use the configuration keys.
 
