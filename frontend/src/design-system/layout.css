@@ -131,6 +131,7 @@
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 2px;
   padding: 5px;
+  --lens-inset: 5px;
   border-radius: 30px;
   border: 1px solid var(--lg-border);
   background-image: var(--lg-sheen);
@@ -151,15 +152,17 @@
   font-size: 11px;
   font-weight: 600;
   color: var(--color-text-tertiary);
-  transition: color var(--dur-fast), background-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+  transition: color var(--dur-fast), transform 280ms var(--ease-spring);
   -webkit-tap-highlight-color: transparent;
 }
 
-.tab-bar a.active {
+.tab-bar a.active,
+.tab-bar a.is-under-lens {
   color: var(--color-accent);
-  background-color: var(--lg-fill-strong);
-  background-image: var(--lg-sheen);
-  box-shadow: var(--lg-rim);
+}
+
+.tab-bar.is-dragging a.active:not(.is-under-lens) {
+  color: var(--color-text-tertiary);
 }
 
 .tab-bar a:active svg {
