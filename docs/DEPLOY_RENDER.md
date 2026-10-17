@@ -10,6 +10,10 @@ You will create **three separate resources** in Render, all in the **same region
 
 Visitors only open `buta-web`. Because the browser talks to one address, sign-in cookies work in every browser, including Safari, and no CORS setup is needed.
 
+> **How API calls flow.** The browser always calls `/api/...` on the **frontend** address (for example `https://buta-web.onrender.com/api/v1/offers`). That is expected: Nginx inside the frontend service forwards every `/api/*` request to `API_UPSTREAM`. Seeing your frontend domain in DevTools → Network is correct.
+>
+> This only works when the frontend is a **Web Service** with runtime **Docker**. A Render **Static Site** has no Nginx, so `/api/*` would return the HTML page or 404. Do **not** set `VITE_API_URL` or `VITE_API_BASE_URL`: the app ignores the first, and pointing the second at the backend breaks sign-in (cookies are not shared between two `onrender.com` subdomains).
+
 Total time: about 20 minutes.
 
 ---
@@ -114,7 +118,7 @@ Notes:
 
 ## Step 3 — Create the frontend (`buta-web`)
 
-1. **New +** → **Web Service** → the same GitHub repository.
+1. **New +** → **Web Service** (not *Static Site*) → the same GitHub repository.
 2. Fill in:
    - **Name:** `buta-web`
    - **Branch:** the same branch
@@ -130,6 +134,8 @@ Notes:
 | Key | Value |
 |---|---|
 | `API_UPSTREAM` | the backend address from Step 2, e.g. `https://buta-api.onrender.com` |
+
+   No other variables are needed on the frontend.
 
 5. Click **Create Web Service** and wait for the deploy to finish.
 
@@ -148,8 +154,40 @@ Notes:
 2. Click **Sign in**, enter the email you put in `APP_ADMIN_EMAILS` and press **Continue**.
 3. The 6-digit code arrives in that inbox within a minute (check **Spam** the first time and mark it "Not spam").
 4. After signing in, **Admin** appears in the top navigation (on a phone: **Account → Admin console**).
+5. In DevTools → Network, open any `/api/v1/...` request on the frontend address: the response must be **JSON**. If it is HTML, the frontend was created as a Static Site; recreate it as described in Step 3.
 
 Done. Every push to the deployed branch redeploys the changed services automatically.
+
+---
+
+## Using the admin console
+
+**Who is an admin:** the owner accounts `jahangir.alisoy@gmail.com` and `cahangiralisoy313@gmail.com` are created as admins by the database migration `010-owner-accounts.sql`, and every email listed in `APP_ADMIN_EMAILS` becomes an admin on sign-in. One account can both shop and administer; a separate admin email is optional.
+
+**How to open it:**
+
+1. Open the frontend address and click **Sign in** (top right). Enter the admin email, then the 6-digit code from Gmail.
+2. Click **Admin** in the top navigation, or go directly to `https://<your-frontend>/admin`. On a phone: **Account** tab → **Admin console**.
+3. The console opens on **Offers**; the other sections are in the left menu (a scrollable row on phones). Use the **EN/AZ** button in the header to switch language.
+
+**What each section does:**
+
+| Section | Use it to |
+|---|---|
+| Offers | Create single offers and bundles from products, set the price and watch the live margin preview; **Publish**, **Pause** or **Archive** offers |
+| Products | Add partner products (price, cost, validity, event date, venue, redemption rules) and adjust inventory |
+| Partners | Add or edit partners and see their sales performance for the last 30 days |
+| Categories | Add or edit categories shown on the home page |
+| Campaigns | Run time-limited campaigns (featured on the home page, optional bonus points for Plus members) |
+| Loyalty | Edit tasks, tiers and membership plan features; approve or reject referrals under review |
+| Users | Find users; assign or revoke Plus, suspend or reactivate, sign a user out everywhere, adjust points |
+| Orders | Find orders, see vouchers and refund whole orders or selected items |
+| Redeem voucher | Enter the code a customer shows at the venue to mark it as used |
+| Business settings | Change pricing, loyalty, membership and recommendation settings (with an impact preview) |
+| Audit log | See who changed what and when |
+| Recommendation metrics | Impressions, clicks, cart adds and purchases from recommendations |
+
+Typical first steps: **Partners** → **Products** (with inventory) → **Offers** (add the products as components, set the price until the margin preview is green) → **Publish**. The offer then appears on the site.
 
 ---
 
@@ -187,7 +225,9 @@ Free web services cannot *receive* private-network traffic, which is why the pub
 | `buta-api` log shows a database connection error | `DB_HOST` must be the **internal** hostname, and the database must be in the same region. Double-check `DB_PASSWORD`. |
 | Sign-in code never arrives | Check Spam. In the `buta-api` logs, `Email delivery failed … AuthenticationFailedException` means a wrong Gmail address or app password (remove spaces; 2-Step Verification must be on; Google Workspace admins can disable app passwords). |
 | "The request came from an origin that is not allowed" when pressing Continue | `APP_PUBLIC_BASE_URL` on `buta-api` does not exactly match the address in the browser bar. |
+| `/api/...` requests on the frontend address return HTML or 404 | The frontend was created as a **Static Site**. Delete it and create a **Web Service** with runtime **Docker** (Step 3). |
 | The site loads but every action fails, or `/api/...` returns 502 | `API_UPSTREAM` on `buta-web` is wrong, or the backend is still waking up (free plan); wait a minute and retry. |
+| I signed in but there is no **Admin** link | The backend has not been redeployed with migration `010-owner-accounts.sql` yet, or the email is not an admin. Redeploy `buta-api`, then sign out and sign in again. |
 | The first visit takes a long time | Free services are waking up from sleep (see [Plans and limits](#plans-and-limits)). |
 
 ---
