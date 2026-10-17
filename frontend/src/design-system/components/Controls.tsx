@@ -1,6 +1,7 @@
 import { useRef, type ChangeEvent, type ClipboardEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { Minus, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useGlassLens } from './useGlassLens';
 
 interface FieldProps {
   id: string;
@@ -125,10 +126,20 @@ interface SegmentedProps<T extends string> {
 }
 
 export function Segmented<T extends string>({ options, value, onChange, label }: SegmentedProps<T>) {
+  const selected = options.findIndex((option) => option.value === value);
+  const lens = useGlassLens(selected, (index) => onChange(options[index].value));
+  const className = ['segmented', selected >= 0 && 'has-selection', lens.dragging && 'is-dragging', lens.ready && 'is-ready'].filter(Boolean).join(' ');
   return (
-    <div className="segmented" role="group" aria-label={label}>
-      {options.map((option) => (
-        <button key={option.value} type="button" aria-pressed={option.value === value} onClick={() => onChange(option.value)}>
+    <div ref={lens.trackRef} className={className} role="group" aria-label={label} {...lens.handlers}>
+      <span ref={lens.lensRef} className="segmented-lens" aria-hidden="true" />
+      {options.map((option, index) => (
+        <button
+          key={option.value}
+          type="button"
+          aria-pressed={index === selected}
+          className={index === lens.hovered ? 'is-under-lens' : undefined}
+          onClick={(event) => lens.select(index, event)}
+        >
           {option.label}
         </button>
       ))}
