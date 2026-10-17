@@ -7,7 +7,7 @@ import { BrandMark } from '../design-system/components/BrandMark';
 import { commerceApi } from '../shared/api/endpoints';
 import { useAuth } from '../features/auth/AuthProvider';
 import { useAppearance } from '../features/account/useAppearance';
-import { apiUrl } from '../shared/api/client';
+import { UserAvatar } from '../features/account/UserAvatar';
 import { LiveSearch } from '../features/catalog/LiveSearch';
 
 const SEARCH_PAGES = ['/explore', '/bundles', '/events', '/categories'];
@@ -16,15 +16,6 @@ export function useCartCount(): number {
   const { isActive } = useAuth();
   const cart = useQuery({ queryKey: ['cart'], queryFn: commerceApi.cart, enabled: isActive, staleTime: 30_000 });
   return isActive ? (cart.data?.itemCount ?? 0) : 0;
-}
-
-function UserAvatar() {
-  const { user } = useAuth();
-  if (!user) {
-    return null;
-  }
-  const initials = `${user.firstName?.[0] ?? user.email[0]}${user.lastName?.[0] ?? ''}`.toUpperCase();
-  return user.avatarUrl ? <img className="avatar" src={apiUrl(user.avatarUrl)} alt="" /> : <span className="avatar">{initials}</span>;
 }
 
 function ThemeButton() {
@@ -139,24 +130,24 @@ export function AppShell({ children }: { children: ReactNode }) {
       <nav className="tab-bar glass" aria-label={t('common.menu')}>
         <NavLink to="/" end className={navClass}>
           <House size={22} />
-          {t('nav.home')}
+          <span className="tab-label">{t('nav.home')}</span>
         </NavLink>
         <NavLink to="/explore" className={navClass}>
           <Compass size={22} />
-          {t('nav.explore')}
+          <span className="tab-label">{t('nav.explore')}</span>
         </NavLink>
         <NavLink to="/for-you" className={navClass}>
           <Sparkles size={22} />
-          {t('nav.forYou')}
+          <span className="tab-label">{t('nav.forYou')}</span>
         </NavLink>
         <NavLink to="/cart" className={navClass}>
           <ShoppingBag size={22} />
           {cartCount > 0 && <span className="cart-count">{cartCount}</span>}
-          {t('nav.cart')}
+          <span className="tab-label">{t('nav.cart')}</span>
         </NavLink>
         <NavLink to={user ? '/account' : '/auth'} className={navClass}>
           <User size={22} />
-          {t('nav.account')}
+          <span className="tab-label">{t('nav.account')}</span>
         </NavLink>
       </nav>
     </div>

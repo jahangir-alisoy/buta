@@ -360,7 +360,10 @@
       "UNDER_REVIEW": "Yoxlanılır",
       "REJECTED": "Uyğun deyil",
       "REVERSED": "Ləğv edildi"
-    }
+    },
+    "currentTier": "Cari",
+    "tierThreshold": "{{points}}+ xal",
+    "pointsToGo": "{{points}} xal qalıb"
   },
   "forYou": {
     "title": "Sizin üçün",

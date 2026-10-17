@@ -30,6 +30,7 @@
   --dur-slow: 320ms;
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --lg-blur: blur(14px) saturate(180%);
 
   --header-height: 64px;
   --tabbar-height: 64px;
@@ -77,6 +78,25 @@
   --shadow-3: 0 24px 60px -20px rgba(14, 17, 22, 0.25), 0 8px 20px -10px rgba(14, 17, 22, 0.12);
   --hero-gradient: radial-gradient(1200px 500px at 85% -10%, rgba(180, 35, 60, 0.16), transparent 60%),
     radial-gradient(900px 420px at -10% 10%, rgba(232, 163, 61, 0.16), transparent 60%);
+  --lg-fill: rgba(255, 255, 255, 0.46);
+  --lg-fill-strong: rgba(255, 255, 255, 0.86);
+  --lg-border: rgba(14, 17, 22, 0.07);
+  --lg-sheen: radial-gradient(140% 110% at 50% -30%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 64%);
+  --lg-rim: inset 0 1px 0.5px rgba(255, 255, 255, 0.95), inset 0 -1px 0.5px rgba(255, 255, 255, 0.45),
+    inset 0 -8px 14px -10px rgba(14, 17, 22, 0.16);
+  --lg-depth: 0 1px 2px rgba(14, 17, 22, 0.05), 0 8px 20px -10px rgba(14, 17, 22, 0.24);
+  --lg-track: inset 0 1px 2px rgba(14, 17, 22, 0.08);
+  --lg-accent-fill: rgba(180, 35, 60, 0.92);
+  --lg-accent-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.04) 55%, rgba(255, 255, 255, 0) 100%);
+  --tier-bronze: #9c5a2a;
+  --tier-bronze-light: #d39a64;
+  --tier-bronze-soft: rgba(176, 106, 52, 0.12);
+  --tier-silver: #5f6b7d;
+  --tier-silver-light: #b4bfcd;
+  --tier-silver-soft: rgba(111, 124, 144, 0.13);
+  --tier-gold: #9a6b00;
+  --tier-gold-light: #f3cf6a;
+  --tier-gold-soft: rgba(212, 160, 23, 0.14);
 }
 
 [data-theme='dark'] {
@@ -115,4 +135,23 @@
   --shadow-3: 0 30px 70px -20px rgba(0, 0, 0, 0.75);
   --hero-gradient: radial-gradient(1200px 500px at 85% -10%, rgba(255, 92, 116, 0.18), transparent 60%),
     radial-gradient(900px 420px at -10% 10%, rgba(242, 181, 90, 0.12), transparent 60%);
+  --lg-fill: rgba(255, 255, 255, 0.07);
+  --lg-fill-strong: rgba(255, 255, 255, 0.15);
+  --lg-border: rgba(255, 255, 255, 0.1);
+  --lg-sheen: radial-gradient(140% 110% at 50% -30%, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 64%);
+  --lg-rim: inset 0 1px 0.5px rgba(255, 255, 255, 0.24), inset 0 -1px 0.5px rgba(255, 255, 255, 0.07),
+    inset 0 -8px 14px -10px rgba(0, 0, 0, 0.55);
+  --lg-depth: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 24px -12px rgba(0, 0, 0, 0.75);
+  --lg-track: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+  --lg-accent-fill: rgba(255, 92, 116, 0.94);
+  --lg-accent-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.05) 55%, rgba(255, 255, 255, 0) 100%);
+  --tier-bronze: #e0a273;
+  --tier-bronze-light: #f6c9a0;
+  --tier-bronze-soft: rgba(224, 162, 115, 0.13);
+  --tier-silver: #c9d2de;
+  --tier-silver-light: #f1f4f8;
+  --tier-silver-soft: rgba(201, 210, 222, 0.11);
+  --tier-gold: #f2c14e;
+  --tier-gold-light: #ffe28f;
+  --tier-gold-soft: rgba(242, 193, 78, 0.13);
 }
