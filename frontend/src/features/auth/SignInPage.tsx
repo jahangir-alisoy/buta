@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
+import { Navigate, useNavigate, useSearchParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Mail, Shield, User } from 'lucide-react';
@@ -15,6 +15,7 @@ import { BrandMark } from '../../design-system/components/BrandMark';
 import { useAuth } from './AuthProvider';
 import { resumePendingAction } from './resumePendingAction';
 import { USERNAME_PATTERN, useUsernameAvailability } from './useUsernameAvailability';
+import { ConsentCheckbox, ConsentNote } from './LegalConsent';
 
 type Tab = 'signIn' | 'register';
 
@@ -59,6 +60,7 @@ export default function SignInPage() {
   const [errors, setErrors] = useState<FieldError[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const [cooldown, startCooldown] = useCountdown();
   const availability = useUsernameAvailability(profile.username);
 
@@ -153,7 +155,7 @@ export default function SignInPage() {
   const setField = (key: keyof typeof profile) => (value: string) => setProfile((current) => ({ ...current, [key]: value }));
   const emailValid = email.includes('@') && email.trim().length > 3;
   const canRegister =
-    emailValid && profile.firstName.trim() && profile.lastName.trim() && USERNAME_PATTERN.test(profile.username) && availability !== 'taken';
+    agreed && emailValid && profile.firstName.trim() && profile.lastName.trim() && USERNAME_PATTERN.test(profile.username) && availability !== 'taken';
 
   return (
     <div className="container auth-shell">
@@ -264,6 +266,7 @@ export default function SignInPage() {
                       onChange={(event) => setField('referralCode')(event.target.value.toUpperCase())}
                     />
                   </Field>
+                  <ConsentCheckbox checked={agreed} onChange={setAgreed} />
                 </>
               )}
               {error && errors.length === 0 && (
@@ -300,9 +303,7 @@ export default function SignInPage() {
               </div>
             )}
 
-            <p className="caption tertiary text-center">
-              {t('auth.privacyNote')} <Link to="/terms">{t('nav.terms')}</Link> {t('auth.and')} <Link to="/privacy-policy">{t('nav.privacyPolicy')}</Link>
-            </p>
+            {tab === 'signIn' && <ConsentNote />}
           </div>
         )}
       </div>

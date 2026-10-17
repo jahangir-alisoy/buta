@@ -218,8 +218,6 @@
     "resumeAdded": "Added to your cart.",
     "resumeFavorite": "Saved to your favorites.",
     "resumeUnavailable": "We couldn't complete your last action: {{reason}}",
-    "privacyNote": "By continuing you agree to the",
-    "and": "and",
     "tabSignIn": "Sign in",
     "tabRegister": "Create account",
     "registerSubtitle": "No code needed now. We’ll ask you to confirm your email before your first purchase.",
@@ -228,7 +226,10 @@
     "quickTitle": "Take a quick look",
     "asCustomer": "As a customer",
     "asAdmin": "As an admin",
-    "or": "or"
+    "or": "or",
+    "consentAgree": "I agree to the <terms>Terms</terms> and <privacy>Privacy policy</privacy>",
+    "consentNote": "By continuing you agree to the <terms>Terms</terms> and <privacy>Privacy policy</privacy>.",
+    "downloadDocument": "Download"
   },
   "cart": {
     "title": "Cart",

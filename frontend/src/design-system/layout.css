@@ -262,7 +262,6 @@
 
 .hero {
   position: relative;
-  overflow: hidden;
 }
 
 .hero-inner {
@@ -302,39 +301,10 @@
   max-width: 540px;
 }
 
-.hero-visual {
-  position: relative;
-  min-height: 180px;
-  border-radius: var(--radius-xl);
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.hero-visual canvas {
-  position: absolute;
-  inset: 0;
-  width: 100% !important;
-  height: 100% !important;
-}
-
-.hero-fallback {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 30% 40%, var(--color-accent) 0, transparent 45%),
-    radial-gradient(circle at 70% 60%, var(--color-accent-2) 0, transparent 40%), var(--color-bg-sunken);
-  filter: blur(30px);
-  opacity: 0.7;
-}
-
 @media (min-width: 900px) {
   .hero-inner {
-    grid-template-columns: 1.2fr 1fr;
-    align-items: center;
     padding-top: var(--space-12);
     padding-bottom: var(--space-12);
-  }
-  .hero-visual {
-    min-height: 360px;
   }
 }
 
@@ -849,8 +819,10 @@
 .auth-shell {
   min-height: calc(100dvh - var(--header-height) - 120px);
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
-  padding: var(--space-8) 0;
+  padding-top: var(--space-8);
+  padding-bottom: var(--space-8);
 }
 
 .auth-card {
@@ -884,8 +856,54 @@
 
 .auth-actions {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: var(--space-2);
+}
+
+.auth-actions .btn {
+  flex: 1 1 180px;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.25;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.legal-consent {
+  font-size: var(--text-small);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.legal-note {
+  font-size: var(--text-caption);
+  color: var(--color-text-tertiary);
+  text-align: center;
+  line-height: 1.6;
+}
+
+.legal-link {
+  display: inline;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .legal-link:hover {
+    color: var(--color-accent-hover);
+  }
 }
 
 .auth-divider {
@@ -1066,12 +1084,6 @@
 .tab-bar .cart-count {
   top: 6px;
   right: calc(50% - 22px);
-}
-
-.hero-canvas {
-  position: absolute;
-  inset: 0;
-  transition: opacity var(--dur-slow) var(--ease-out);
 }
 
 @media (max-width: 959px) {

@@ -218,8 +218,6 @@
     "resumeAdded": "Səbətinizə əlavə edildi.",
     "resumeFavorite": "Seçilmişlərinizə əlavə edildi.",
     "resumeUnavailable": "Son əməliyyatınızı tamamlamaq mümkün olmadı: {{reason}}",
-    "privacyNote": "Davam etməklə razılaşırsınız:",
-    "and": "və",
     "tabSignIn": "Daxil ol",
     "tabRegister": "Hesab yarat",
     "registerSubtitle": "İndi kod lazım deyil. İlk alışdan əvvəl e-poçtunuzu təsdiqləməyinizi xahiş edəcəyik.",
@@ -228,7 +226,10 @@
     "quickTitle": "Tez nəzər salın",
     "asCustomer": "Müştəri kimi",
     "asAdmin": "Admin kimi",
-    "or": "və ya"
+    "or": "və ya",
+    "consentAgree": "<terms>Şərtlər</terms> və <privacy>Məxfilik siyasəti</privacy> ilə razıyam",
+    "consentNote": "Davam etməklə <terms>Şərtlər</terms> və <privacy>Məxfilik siyasəti</privacy> ilə razılaşırsınız.",
+    "downloadDocument": "Yüklə"
   },
   "cart": {
     "title": "Səbət",

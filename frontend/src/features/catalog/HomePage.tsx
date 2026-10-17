@@ -1,4 +1,3 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -6,32 +5,13 @@ import { Award } from 'lucide-react';
 import { catalogApi } from '../../shared/api/endpoints';
 import { CardGridSkeleton, ErrorState } from '../../design-system/components/States';
 import { CategoryIcon } from '../../design-system/components/CategoryIcon';
-import { usePreferences } from '../../app/PreferencesProvider';
 import { useAuth } from '../auth/AuthProvider';
 import { OfferRail, RecommendedOffers } from './OfferCollection';
 import { OfferCard } from './OfferCard';
 import { LiveSearch } from './LiveSearch';
 
-const HeroScene = lazy(() => import('./HeroScene'));
-
-function useDeferredHero(): boolean {
-  const [show, setShow] = useState(false);
-  useEffect(() => {
-    const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
-    if (connection?.saveData) {
-      return;
-    }
-    const timer = window.setTimeout(() => setShow(true), 300);
-    return () => window.clearTimeout(timer);
-  }, []);
-  return show;
-}
-
 function Hero() {
   const { t } = useTranslation();
-  const { theme } = usePreferences();
-  const showScene = useDeferredHero();
-
   return (
     <section className="hero">
       <div className="container hero-inner">
@@ -40,14 +20,6 @@ function Hero() {
           <h1 className="hero-title">{t('home.heroTitle')}</h1>
           <p className="hero-subtitle">{t('home.heroSubtitle')}</p>
           <LiveSearch large />
-        </div>
-        <div className="hero-visual">
-          <div className="hero-fallback" />
-          {showScene && (
-            <Suspense fallback={null}>
-              <HeroScene key={theme} />
-            </Suspense>
-          )}
         </div>
       </div>
     </section>
