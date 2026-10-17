@@ -239,7 +239,7 @@ export default function SignInPage() {
                       <input id="lastName" className="input" autoComplete="family-name" maxLength={50} value={profile.lastName} onChange={(event) => setField('lastName')(event.target.value)} />
                     </Field>
                   </div>
-                  <Field id="username" label={t('auth.username')} error={fieldError(errors, 'username') ?? (availability === 'taken' ? t('auth.usernameTaken') : undefined)}>
+                  <Field id="username" label={t('auth.username')} error={fieldError(errors, 'username')}>
                     <div className="input-with-mark">
                       <input
                         id="username"
