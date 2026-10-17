@@ -8,6 +8,8 @@ app:
   mail:
     provider: in-memory
   admin-emails: admin@buta.test,bootstrap.admin@buta.test
+  jobs:
+    enabled: false
 
 logging:
   level:

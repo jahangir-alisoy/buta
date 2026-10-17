@@ -100,6 +100,11 @@ public class GlobalExceptionHandler {
         return respond(problems.create(ErrorCode.CONFLICT, request));
     }
 
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<ProblemDetail> handleIntegrity(org.springframework.dao.DataIntegrityViolationException exception, HttpServletRequest request) {
+        return respond(problems.create(ErrorCode.CONFLICT, request));
+    }
+
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ProblemDetail> handleNoResource(NoResourceFoundException exception, HttpServletRequest request) {
         return respond(problems.create(ErrorCode.NOT_FOUND, request));
