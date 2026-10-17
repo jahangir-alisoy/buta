@@ -9,6 +9,7 @@ import { ErrorState, Skeleton } from '../../design-system/components/States';
 import { CopyButton } from '../../design-system/components/CopyButton';
 import { PageLoader } from '../../app/PageLoader';
 import { PlusOffer } from './PlusOffer';
+import { TierTrack } from './TierTrack';
 
 function Progress({ value, label }: { value: number; label: string }) {
   const percent = Math.max(0, Math.min(100, value));
@@ -51,16 +52,14 @@ function TaskCard({ task }: { task: LoyaltyTask }) {
   const done = task.status === 'COMPLETED' || task.awarded;
   return (
     <li className="card stack" style={{ gap: 10 }}>
-      <div className="row spread" style={{ alignItems: 'flex-start' }}>
-        <div className="stack" style={{ gap: 4 }}>
-          <strong>{task.title}</strong>
-          <span className="small muted">{task.description}</span>
-        </div>
+      <div className="task-head">
+        <strong>{task.title}</strong>
         <span className={`badge ${done ? 'badge-success' : 'badge-plus'}`}>
           {done ? <Check size={14} aria-hidden="true" /> : null}
           {done ? t('loyalty.completed') : t('loyalty.reward', { points: task.rewardPoints })}
         </span>
       </div>
+      <span className="small muted">{task.description}</span>
       <Progress value={(task.progress / Math.max(1, task.target)) * 100} label={task.title} />
       <div className="row spread caption muted">
         <span>{t('loyalty.inProgress', { progress: Math.min(task.progress, task.target), target: task.target })}</span>
@@ -170,35 +169,21 @@ function PlusMember({ summary }: { summary: LoyaltySummary }) {
           <div className="stat-value">{formatNumber(summary.redeemedPoints)}</div>
         </div>
       </div>
-      <section className="section card stack">
-        <div className="row spread wrap">
+      <section className={`section card stack tier-section tier-${summary.tier.code.toLowerCase()}`}>
+        <div className="tier-section-head">
           <h2 className="section-title row" style={{ gap: 8 }}>
             <Award size={20} aria-hidden="true" />
-            {t('loyalty.tier')}: {summary.tier.name}
+            <span>
+              {t('loyalty.tier')}: <span className="tier-name">{summary.tier.name}</span>
+            </span>
           </h2>
-          <span className="badge badge-plus">{t('loyalty.multiplier', { value: summary.tier.multiplier })}</span>
+          <span className="badge tier-badge">{t('loyalty.multiplier', { value: summary.tier.multiplier })}</span>
         </div>
-        <Progress value={summary.tierProgressPercent} label={t('loyalty.tier')} />
         <p className="small muted">
           {summary.nextTier ? t('loyalty.nextTier', { points: summary.nextTier.pointsNeeded, tier: summary.nextTier.name }) : t('loyalty.maxTier')}
         </p>
         {summary.membershipEndsAt && <p className="caption tertiary">{t('loyalty.membershipEnds', { date: formatDate(summary.membershipEndsAt) })}</p>}
-        <div className="steps">
-          {summary.tiers.map((tier) => (
-            <div key={tier.code} className="stat" style={tier.code === summary.tier.code ? { borderColor: 'var(--color-accent)' } : undefined}>
-              <div className="row spread">
-                <strong>{tier.name}</strong>
-                <span className="caption muted">{formatNumber(tier.threshold)}+</span>
-              </div>
-              <div className="caption muted">{t('loyalty.multiplier', { value: tier.multiplier })}</div>
-              <ul className="caption" style={{ margin: '8px 0 0', paddingLeft: 18 }}>
-                {tier.benefits.map((benefit) => (
-                  <li key={benefit}>{benefit}</li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
+        <TierTrack tiers={summary.tiers} currentCode={summary.tier.code} points={summary.tierQualifyingPoints} />
       </section>
       <section className="section">
         <h2 className="section-title row" style={{ gap: 8, marginBottom: 12 }}>

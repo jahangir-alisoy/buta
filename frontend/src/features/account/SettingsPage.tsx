@@ -9,9 +9,9 @@ import { errorMessage } from '../../design-system/components/States';
 import { useToast } from '../../design-system/components/Toast';
 import { useAuth } from '../auth/AuthProvider';
 import { useAppearance } from './useAppearance';
+import { UserAvatar } from './UserAvatar';
 import { EmailVerification } from '../auth/EmailVerification';
 import type { ThemeChoice } from '../../app/PreferencesProvider';
-import { apiUrl } from '../../shared/api/client';
 import type { Language } from '../../shared/i18n';
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
@@ -26,7 +26,6 @@ function ProfileSection() {
   const [busy, setBusy] = useState(false);
   const [avatarBusy, setAvatarBusy] = useState(false);
   const errorFor = (field: string) => errors.find((error) => error.field === field)?.message;
-  const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}`.toUpperCase();
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -89,7 +88,7 @@ function ProfileSection() {
   return (
     <form className="card stack profile-card" onSubmit={submit} noValidate>
       <div className="profile-head">
-        {user?.avatarUrl ? <img className="avatar avatar-lg" src={apiUrl(user.avatarUrl)} alt="" /> : <span className="avatar avatar-lg">{initials}</span>}
+        <UserAvatar large />
         <div className="profile-head-actions">
           <button type="button" className="btn btn-secondary btn-sm" onClick={() => input.current?.click()} disabled={avatarBusy}>
             <Upload size={16} aria-hidden="true" />

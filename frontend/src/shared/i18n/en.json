@@ -360,7 +360,10 @@
       "UNDER_REVIEW": "Under review",
       "REJECTED": "Not eligible",
       "REVERSED": "Reversed"
-    }
+    },
+    "currentTier": "Current",
+    "tierThreshold": "{{points}}+ points",
+    "pointsToGo": "{{points}} points to go"
   },
   "forYou": {
     "title": "For you",
