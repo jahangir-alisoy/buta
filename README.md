@@ -103,6 +103,8 @@ Sign-in is passwordless: enter an email, then the 6-digit code from Mailpit.
 
 Any other email creates a new account (you'll be asked for name and username).
 
+Owner accounts `jahangir.alisoy@gmail.com` and `cahangiralisoy313@gmail.com` are created as admins in every environment by migration `010-owner-accounts.sql`. How to use the admin console is described in [docs/DEPLOY_RENDER.md](docs/DEPLOY_RENDER.md#using-the-admin-console).
+
 Suggested walkthrough:
 
 1. Browse the home page, **Explore**, **Bundles** and **Events** without signing in; open a bundle to see the separate-vs-bundle price comparison and what is included.
