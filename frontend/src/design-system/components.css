@@ -364,29 +364,27 @@
   outline-offset: 2px;
 }
 
-.segmented {
+.lens-track {
   position: relative;
   isolation: isolate;
-  max-width: 100%;
-  display: inline-flex;
-  padding: 4px;
-  border-radius: var(--radius-pill);
-  background: var(--color-bg-sunken);
-  border: 1px solid var(--lg-border);
-  box-shadow: var(--lg-track);
-  -webkit-backdrop-filter: var(--lg-blur);
-  backdrop-filter: var(--lg-blur);
-  gap: 2px;
   touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
 }
 
-.segmented-lens {
+.lens-track > a,
+.lens-track > button {
+  position: relative;
+  z-index: 1;
+  -webkit-user-drag: none;
+  transition: background-color var(--dur-base) var(--ease-out), color var(--dur-fast), transform 280ms var(--ease-spring);
+}
+
+.glass-lens {
   position: absolute;
-  top: 4px;
-  bottom: 4px;
+  top: var(--lens-inset, 0px);
+  bottom: var(--lens-inset, 0px);
   left: 0;
   z-index: 0;
   width: var(--lens-w, 0px);
@@ -400,17 +398,17 @@
   will-change: transform, width;
 }
 
-.segmented.has-selection .segmented-lens,
-.segmented.is-dragging .segmented-lens {
+.lens-track.has-selection > .glass-lens,
+.lens-track.is-dragging > .glass-lens {
   opacity: 1;
 }
 
-.segmented.is-ready .segmented-lens {
+.lens-track.is-ready > .glass-lens {
   transition: transform 520ms var(--ease-spring), width 360ms var(--ease-out), background-color var(--dur-base) var(--ease-out),
     box-shadow var(--dur-base) var(--ease-out), opacity var(--dur-base);
 }
 
-.segmented.is-dragging .segmented-lens {
+.lens-track.is-dragging > .glass-lens {
   --lens-scale: 1.14;
   background-color: var(--lg-fill);
   box-shadow: var(--lg-rim), inset 0 0 0 1px var(--lg-border), var(--shadow-2);
@@ -420,9 +418,31 @@
     box-shadow var(--dur-base) var(--ease-out);
 }
 
+.lens-track.is-dragging,
+.lens-track.is-dragging > * {
+  cursor: grabbing;
+}
+
+.lens-track > .is-under-lens {
+  color: var(--color-text);
+  transform: scale(1.08);
+}
+
+.segmented {
+  --lens-inset: 4px;
+  max-width: 100%;
+  display: inline-flex;
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-sunken);
+  border: 1px solid var(--lg-border);
+  box-shadow: var(--lg-track);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+  gap: 2px;
+}
+
 .segmented button {
-  position: relative;
-  z-index: 1;
   min-height: 36px;
   padding: 0 14px;
   border-radius: var(--radius-pill);
@@ -432,7 +452,6 @@
   font-weight: 600;
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: background-color var(--dur-base) var(--ease-out), color var(--dur-fast), transform 280ms var(--ease-spring);
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -440,21 +459,8 @@
   color: var(--color-text);
 }
 
-.segmented.is-dragging {
-  cursor: grabbing;
-}
-
-.segmented.is-dragging button {
-  cursor: grabbing;
-}
-
 .segmented.is-dragging button[aria-pressed='true']:not(.is-under-lens) {
   color: var(--color-text-secondary);
-}
-
-.segmented button.is-under-lens {
-  color: var(--color-text);
-  transform: scale(1.08);
 }
 
 @media (hover: hover) {

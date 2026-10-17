@@ -105,7 +105,7 @@ app:
     lockout-duration: PT30M
   mail:
     provider: smtp
-    from: "Buta <${MAIL_USERNAME:no-reply@buta.test}>"
+    from: "Naxış <${MAIL_USERNAME:no-reply@buta.test}>"
     dev-mailbox-enabled: ${APP_DEV_MAILBOX_ENABLED:false}
   payment:
     provider: ${APP_PAYMENT_PROVIDER:sandbox}

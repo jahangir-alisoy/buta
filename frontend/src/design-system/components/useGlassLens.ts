@@ -8,11 +8,13 @@ interface Gesture {
   dragging: boolean;
 }
 
-function segmentsOf(track: HTMLElement | null): HTMLButtonElement[] {
-  return track ? Array.from(track.children).filter((child): child is HTMLButtonElement => child instanceof HTMLButtonElement) : [];
+function segmentsOf(track: HTMLElement | null): HTMLElement[] {
+  return track
+    ? Array.from(track.children).filter((child): child is HTMLElement => child instanceof HTMLButtonElement || child instanceof HTMLAnchorElement)
+    : [];
 }
 
-function segmentAt(segments: HTMLButtonElement[], clientX: number): number {
+function segmentAt(segments: HTMLElement[], clientX: number): number {
   let nearest = 0;
   let nearestDistance = Number.POSITIVE_INFINITY;
   segments.forEach((segment, index) => {
@@ -26,8 +28,8 @@ function segmentAt(segments: HTMLButtonElement[], clientX: number): number {
   return nearest;
 }
 
-export function useGlassLens(selectedIndex: number, onSelect: (index: number) => void) {
-  const trackRef = useRef<HTMLDivElement>(null);
+export function useGlassLens<T extends HTMLElement>(selectedIndex: number, onSelect: (index: number) => void) {
+  const trackRef = useRef<T>(null);
   const lensRef = useRef<HTMLSpanElement>(null);
   const gesture = useRef<Gesture | null>(null);
   const suppressClick = useRef(false);
@@ -90,7 +92,7 @@ export function useGlassLens(selectedIndex: number, onSelect: (index: number) =>
     }
   };
 
-  const end = (event: PointerEvent<HTMLDivElement>, commit: boolean) => {
+  const end = (event: PointerEvent<T>, commit: boolean) => {
     const current = gesture.current;
     if (!current || current.pointerId !== event.pointerId) {
       return;
@@ -118,14 +120,14 @@ export function useGlassLens(selectedIndex: number, onSelect: (index: number) =>
   };
 
   const handlers = {
-    onPointerDown: (event: PointerEvent<HTMLDivElement>) => {
+    onPointerDown: (event: PointerEvent<T>) => {
       suppressClick.current = false;
       if (event.button !== 0 || !event.isPrimary) {
         return;
       }
       gesture.current = { pointerId: event.pointerId, startX: event.clientX, dragging: false };
     },
-    onPointerMove: (event: PointerEvent<HTMLDivElement>) => {
+    onPointerMove: (event: PointerEvent<T>) => {
       const current = gesture.current;
       if (!current || current.pointerId !== event.pointerId) {
         return;
@@ -140,22 +142,31 @@ export function useGlassLens(selectedIndex: number, onSelect: (index: number) =>
       }
       follow(event.clientX);
     },
-    onPointerUp: (event: PointerEvent<HTMLDivElement>) => end(event, true),
-    onPointerCancel: (event: PointerEvent<HTMLDivElement>) => end(event, false),
-    onLostPointerCapture: (event: PointerEvent<HTMLDivElement>) => {
+    onPointerUp: (event: PointerEvent<T>) => end(event, true),
+    onPointerCancel: (event: PointerEvent<T>) => end(event, false),
+    onLostPointerCapture: (event: PointerEvent<T>) => {
       if (event.target === event.currentTarget) {
         end(event, false);
       }
     },
   };
 
-  const select = (index: number, event: MouseEvent<HTMLButtonElement>) => {
+  const guard = (event: MouseEvent) => {
     if (suppressClick.current && event.detail > 0) {
       suppressClick.current = false;
-      return;
+      event.preventDefault();
+      return true;
     }
-    onSelect(index);
+    return false;
   };
 
-  return { trackRef, lensRef, hovered, dragging, ready, handlers, select };
+  const select = (index: number, event: MouseEvent) => {
+    if (!guard(event)) {
+      onSelect(index);
+    }
+  };
+
+  const trackClassName = ['lens-track', selectedIndex >= 0 && 'has-selection', dragging && 'is-dragging', ready && 'is-ready'].filter(Boolean).join(' ');
+
+  return { trackRef, lensRef, hovered, trackClassName, handlers, select, guard };
 }
