@@ -34,9 +34,6 @@ export default function AccountPage() {
           </span>
         </div>
       </header>
-      <h2 className="small muted" style={{ marginBottom: 8 }}>
-        {t('account.quickLinks')}
-      </h2>
       <nav className="card menu-list" style={{ padding: 0 }}>
         {links.map((link) => (
           <Link key={link.to} to={link.to}>
@@ -57,10 +54,6 @@ export default function AccountPage() {
         <button type="button" onClick={() => logout()}>
           <LogOut size={20} />
           {t('common.signOut')}
-        </button>
-        <button type="button" onClick={() => logout(true)} style={{ borderTop: '1px solid var(--color-border-subtle)' }}>
-          <LogOut size={20} />
-          {t('account.logoutAll')}
         </button>
       </div>
     </div>

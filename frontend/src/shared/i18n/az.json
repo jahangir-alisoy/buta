@@ -130,7 +130,8 @@
     "availability": "Mövcudluq",
     "salesEnd": "Satış bitir",
     "perOrder": "Sifarişdə",
-    "upTo": "{{count}} ədədədək"
+    "upTo": "{{count}} ədədədək",
+    "getPlus": "Plus əldə et"
   },
   "productTypes": {
     "EVENT_TICKET": "Tədbir bileti",
@@ -401,7 +402,6 @@
     "avatarHint": "JPEG və ya PNG, 2 MB-a qədər.",
     "saved": "Yadda saxlanıldı",
     "membership": "Üzvlük",
-    "logoutAll": "Bütün cihazlardan çıxış",
     "preferences": "Seçimlər",
     "privacyTitle": "Məxfilik və fərdiləşdirmə",
     "personalization": "Fərdi tövsiyələr",
@@ -414,7 +414,6 @@
     "resetConfirm": "Fərdiləşdirmə məlumatlarınız silinsin?",
     "resetDone": "Fərdiləşdirmə məlumatları silindi.",
     "dataInfo": "E-poçt, ad, istifadəçi adı, istəyə bağlı telefon və şəkil, sifarişlər və xallar saxlanılır. Tövsiyə fəaliyyəti yalnız icazənizlə saxlanılır və 180 gün qalır.",
-    "quickLinks": "Sürətli keçidlər",
     "adminConsole": "İdarəetmə paneli",
     "emailNotVerified": "Təsdiqlənməyib"
   },
@@ -680,6 +679,32 @@
     },
     "audit": {
       "empty": "Audit qeydi yoxdur."
+    }
+  },
+  "plus": {
+    "title": "Naxış Plus",
+    "perPeriod": "{{price}} / ay",
+    "periodNote": "{{days}} günlük Plus. Avtomatik yenilənmir.",
+    "buy": "Plus əldə et",
+    "extend": "Plus-ı uzat",
+    "activeUntil": "{{date}} tarixinədək aktivdir",
+    "sheetTitle": "Naxış Plus",
+    "plan": "Plan",
+    "period": "Müddət",
+    "periodValue": "{{days}} gün",
+    "total": "Cəmi",
+    "pay": "{{price}} ödə",
+    "paying": "Emal olunur…",
+    "welcome": "Naxış Plus-a xoş gəlmisiniz!",
+    "extended": "Plus {{date}} tarixinədək uzadıldı",
+    "orEarn": "Və ya pulsuz açın: {{days}} gün ərzində {{threshold}} alış edin.",
+    "benefits": {
+      "points": "Hər alışdan xal qazanın",
+      "tasks": "Bonus xallı tapşırıqlar",
+      "tiers": "Yüksək qazanc əmsallı səviyyələr",
+      "redeem": "Xallarla ödəyin",
+      "picks": "Şəxsi tövsiyələr",
+      "exclusive": "Yalnız Plus üçün təkliflər"
     }
   }
 }

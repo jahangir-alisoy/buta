@@ -183,7 +183,7 @@ function PricePanel({ detail, quantity, setQuantity, onAdd, pending, onPurchaseV
             <p className="small muted text-center">
               {t('offer.plusOnlyText')}{' '}
               <Link to="/rewards" className="section-link">
-                {t('home.plusCta')}
+                {t('offer.getPlus')}
               </Link>
             </p>
           )}

@@ -15,6 +15,7 @@ import type {
   Page,
   PartnerDetail,
   PartnerSummary,
+  PlusPlan,
   Preferences,
   PreferencesUpdate,
   Quote,
@@ -79,7 +80,6 @@ export const authApi = {
   usernameAvailability: (username: string) =>
     api<{ username: string; available: boolean }>(`/auth/username-availability${query({ username })}`),
   logout: () => api<void>('/auth/logout', { method: 'POST' }),
-  logoutAll: () => api<void>('/auth/logout-all', { method: 'POST' }),
 };
 
 export const accountApi = {
@@ -104,6 +104,8 @@ export const accountApi = {
   ledger: (page = 0) => api<Page<LedgerEntry>>(`/me/loyalty/ledger${query({ page, size: 20 })}`),
   tasks: () => api<LoyaltyTask[]>('/me/loyalty/tasks'),
   referral: () => api<ReferralInfo>('/me/referral'),
+  plusPlan: () => api<PlusPlan>('/me/plus'),
+  buyPlus: () => api<PlusPlan>('/me/plus/purchase', { method: 'POST' }),
 };
 
 export const commerceApi = {

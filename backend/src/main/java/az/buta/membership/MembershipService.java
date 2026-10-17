@@ -70,6 +70,9 @@ public class MembershipService {
         if (spend.spent().compareTo(spend.threshold()) >= 0) {
             boolean wasPlus = membership.isPlusAt(now);
             Instant endsAt = now.plus(Duration.ofDays(settings.membership().earnedPlusDurationDays()));
+            if (wasPlus && membership.endsAt() != null && membership.endsAt().isAfter(endsAt)) {
+                return;
+            }
             membership.grantPlus(MembershipSource.EARNED, endsAt, null, "QUALIFYING_SPEND", now);
             memberships.save(membership);
             if (!wasPlus) {

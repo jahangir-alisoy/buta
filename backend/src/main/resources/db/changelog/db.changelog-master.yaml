@@ -31,3 +31,5 @@ databaseChangeLog:
       file: db/changelog/changes/011-email-verification.sql
   - include:
       file: db/changelog/changes/012-content-wording.sql
+  - include:
+      file: db/changelog/changes/013-plus-subscription.sql
