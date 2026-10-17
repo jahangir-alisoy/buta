@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
-import { Link, NavLink, useLocation, useNavigation } from 'react-router';
+import { Link, useLocation, useNavigation } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Compass, House, Moon, Search, ShoppingBag, Sparkles, Sun, User } from 'lucide-react';
+import { Moon, Search, ShoppingBag, Sun } from 'lucide-react';
 import { BrandMark } from '../design-system/components/BrandMark';
 import { commerceApi } from '../shared/api/endpoints';
 import { useAuth } from '../features/auth/AuthProvider';
@@ -10,6 +10,7 @@ import { useAppearance } from '../features/account/useAppearance';
 import { UserAvatar } from '../features/account/UserAvatar';
 import { LiveSearch } from '../features/catalog/LiveSearch';
 import { MainNav } from './MainNav';
+import { TabBar } from './TabBar';
 
 const SEARCH_PAGES = ['/explore', '/bundles', '/events', '/categories'];
 
@@ -52,7 +53,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { user, isActive } = useAuth();
   const location = useLocation();
   const cartCount = useCartCount();
-  const navClass = ({ isActive: active }: { isActive: boolean }) => (active ? 'active' : undefined);
 
   return (
     <div className="app-shell">
@@ -107,29 +107,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </p>
         </div>
       </footer>
-      <nav className="tab-bar glass" aria-label={t('common.menu')}>
-        <NavLink to="/" end className={navClass}>
-          <House size={22} />
-          <span className="tab-label">{t('nav.home')}</span>
-        </NavLink>
-        <NavLink to="/explore" className={navClass}>
-          <Compass size={22} />
-          <span className="tab-label">{t('nav.explore')}</span>
-        </NavLink>
-        <NavLink to="/for-you" className={navClass}>
-          <Sparkles size={22} />
-          <span className="tab-label">{t('nav.forYou')}</span>
-        </NavLink>
-        <NavLink to="/cart" className={navClass}>
-          <ShoppingBag size={22} />
-          {cartCount > 0 && <span className="cart-count">{cartCount}</span>}
-          <span className="tab-label">{t('nav.cart')}</span>
-        </NavLink>
-        <NavLink to={user ? '/account' : '/auth'} className={navClass}>
-          <User size={22} />
-          <span className="tab-label">{t('nav.account')}</span>
-        </NavLink>
-      </nav>
+      <TabBar cartCount={cartCount} />
     </div>
   );
 }
