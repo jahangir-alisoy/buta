@@ -27,3 +27,7 @@ databaseChangeLog:
       file: db/changelog/changes/903-demo-orders.sql
   - include:
       file: db/changelog/changes/904-demo-loyalty.sql
+  - include:
+      file: db/changelog/changes/011-email-verification.sql
+  - include:
+      file: db/changelog/changes/012-content-wording.sql

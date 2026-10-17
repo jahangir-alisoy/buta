@@ -1,8 +1,8 @@
-import { lazy, Suspense, useEffect, useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Award, Search } from 'lucide-react';
+import { Award } from 'lucide-react';
 import { catalogApi } from '../../shared/api/endpoints';
 import { CardGridSkeleton, ErrorState } from '../../design-system/components/States';
 import { CategoryIcon } from '../../design-system/components/CategoryIcon';
@@ -10,6 +10,7 @@ import { usePreferences } from '../../app/PreferencesProvider';
 import { useAuth } from '../auth/AuthProvider';
 import { OfferRail, RecommendedOffers } from './OfferCollection';
 import { OfferCard } from './OfferCard';
+import { LiveSearch } from './LiveSearch';
 
 const HeroScene = lazy(() => import('./HeroScene'));
 
@@ -28,16 +29,8 @@ function useDeferredHero(): boolean {
 
 function Hero() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const { theme } = usePreferences();
-  const [query, setQuery] = useState('');
   const showScene = useDeferredHero();
-
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    const value = query.trim();
-    navigate(value ? `/explore?q=${encodeURIComponent(value)}` : '/explore');
-  };
 
   return (
     <section className="hero">
@@ -46,13 +39,7 @@ function Hero() {
           <span className="hero-eyebrow">{t('home.heroEyebrow')}</span>
           <h1 className="hero-title">{t('home.heroTitle')}</h1>
           <p className="hero-subtitle">{t('home.heroSubtitle')}</p>
-          <form role="search" onSubmit={submit}>
-            <label className="search-bar">
-              <Search size={18} />
-              <span className="visually-hidden">{t('common.search')}</span>
-              <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('home.searchPlaceholder')} />
-            </label>
-          </form>
+          <LiveSearch large />
         </div>
         <div className="hero-visual">
           <div className="hero-fallback" />

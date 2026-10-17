@@ -55,7 +55,8 @@ public class SessionService {
                         .filter(user -> user.status() != UserStatus.SUSPENDED)
                         .map(user -> {
                             session.touch(now, idleTimeoutFor(user), settings.touchInterval());
-                            return new AuthenticatedUser(user.getId(), session.getId(), user.status(), user.roleSet());
+                            return new AuthenticatedUser(user.getId(), session.getId(), user.email(),
+                                    user.isEmailVerified(), user.status(), user.roleSet());
                         }));
     }
 

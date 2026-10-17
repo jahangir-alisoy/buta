@@ -1,6 +1,7 @@
 package az.buta.admin;
 
 import az.buta.common.i18n.LocalizedText;
+import az.buta.user.domain.EmailAddresses;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -26,6 +27,11 @@ public final class AdminDtos {
     public record UserView(UUID id, String email, String username, String firstName, String lastName, String status, Set<String> roles,
                            String plan, String planSource, Instant planEndsAt, long availablePoints, String tier, boolean flaggedForReview,
                            Instant createdAt) {
+
+        public UserView withMaskedEmail() {
+            return new UserView(id, EmailAddresses.mask(email), username, firstName, lastName, status, roles, plan, planSource, planEndsAt,
+                    availablePoints, tier, flaggedForReview, createdAt);
+        }
     }
 
     public record AssignPlusRequest(Instant endsAt, @NotBlank @Size(max = 200) String reason) {
@@ -59,6 +65,11 @@ public final class AdminDtos {
 
     public record ReferralView(UUID id, UUID referrerId, String referrerEmail, UUID refereeId, String refereeEmail, String status,
                                String reviewNote, Instant createdAt) {
+
+        public ReferralView withMaskedEmails() {
+            return new ReferralView(id, referrerId, EmailAddresses.mask(referrerEmail), refereeId, EmailAddresses.mask(refereeEmail), status,
+                    reviewNote, createdAt);
+        }
     }
 
     public record PlanView(String code, LocalizedText name, Set<String> features, boolean purchasable) {

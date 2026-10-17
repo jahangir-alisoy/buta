@@ -51,6 +51,9 @@ public class User extends AbstractEntity {
     @Column(name = "registration_ip_hash")
     private String registrationIpHash;
 
+    @Column(name = "email_verified_at")
+    private Instant emailVerifiedAt;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -78,6 +81,26 @@ public class User extends AbstractEntity {
         user.updatedAt = now;
         user.roles.add(new RoleGrant(Role.CUSTOMER, RoleSource.SYSTEM, now));
         return user;
+    }
+
+    public static User registerUnverified(String email, String referralCode, String registrationIpHash, String firstName,
+                                          String lastName, String username, Instant now) {
+        User user = register(email, referralCode, registrationIpHash, now);
+        user.completeProfile(firstName, lastName, username, now);
+        return user;
+    }
+
+    public boolean markEmailVerified(Instant now) {
+        if (emailVerifiedAt != null) {
+            return false;
+        }
+        emailVerifiedAt = now;
+        updatedAt = now;
+        return true;
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerifiedAt != null;
     }
 
     public void completeProfile(String firstName, String lastName, String username, Instant now) {

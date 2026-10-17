@@ -9,6 +9,7 @@ import { errorMessage } from '../../design-system/components/States';
 import { useToast } from '../../design-system/components/Toast';
 import { useAuth } from '../auth/AuthProvider';
 import { useAppearance } from './useAppearance';
+import { EmailVerification } from '../auth/EmailVerification';
 import type { ThemeChoice } from '../../app/PreferencesProvider';
 import { apiUrl } from '../../shared/api/client';
 import type { Language } from '../../shared/i18n';
@@ -185,8 +186,14 @@ function EmailSection() {
     <section className="card stack">
       <h2 className="section-title">{t('account.email')}</h2>
       <p className="small">
-        {user?.email} <span className="badge badge-success">{t('account.emailVerified')}</span>
+        {user?.email}{' '}
+        {user?.emailVerified ? (
+          <span className="badge badge-success">{t('account.emailVerified')}</span>
+        ) : (
+          <span className="badge badge-warning">{t('account.emailNotVerified')}</span>
+        )}
       </p>
+      {user && !user.emailVerified && <EmailVerification />}
       {step === 'idle' ? (
         <form className="row wrap" onSubmit={request} noValidate>
           <input

@@ -43,9 +43,15 @@
 :root,
 [data-theme='light'] {
   color-scheme: light;
-  --color-bg: #f4f5f7;
-  --color-bg-elevated: #ffffff;
-  --color-bg-sunken: #eceef2;
+  --color-bg: #eef0f5;
+  --color-bg-elevated: rgba(255, 255, 255, 0.66);
+  --color-bg-solid: #ffffff;
+  --color-bg-sunken: rgba(14, 17, 22, 0.05);
+  --color-glass-border: rgba(255, 255, 255, 0.85);
+  --glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --page-gradient: radial-gradient(1100px 720px at 8% -12%, rgba(180, 35, 60, 0.16), transparent 62%),
+    radial-gradient(900px 640px at 100% 4%, rgba(232, 163, 61, 0.18), transparent 58%),
+    radial-gradient(1000px 760px at 50% 108%, rgba(96, 112, 255, 0.12), transparent 62%), #eef0f5;
   --color-surface-glass: rgba(255, 255, 255, 0.72);
   --color-surface-glass-strong: rgba(255, 255, 255, 0.9);
   --color-border-subtle: rgba(14, 17, 22, 0.08);
@@ -76,8 +82,14 @@
 [data-theme='dark'] {
   color-scheme: dark;
   --color-bg: #0b0d12;
-  --color-bg-elevated: #12151c;
-  --color-bg-sunken: #080a0e;
+  --color-bg-elevated: rgba(30, 34, 46, 0.58);
+  --color-bg-solid: #151923;
+  --color-bg-sunken: rgba(255, 255, 255, 0.05);
+  --color-glass-border: rgba(255, 255, 255, 0.09);
+  --glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --page-gradient: radial-gradient(1100px 720px at 8% -12%, rgba(255, 92, 116, 0.16), transparent 62%),
+    radial-gradient(900px 640px at 100% 4%, rgba(242, 181, 90, 0.1), transparent 58%),
+    radial-gradient(1000px 760px at 50% 108%, rgba(96, 112, 255, 0.14), transparent 62%), #0b0d12;
   --color-surface-glass: rgba(22, 26, 35, 0.66);
   --color-surface-glass-strong: rgba(22, 26, 35, 0.88);
   --color-border-subtle: rgba(255, 255, 255, 0.07);

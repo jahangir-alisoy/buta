@@ -1,11 +1,15 @@
 package az.buta.auth.web;
 
+import az.buta.auth.GuestSignInService;
+import az.buta.auth.RegistrationService;
 import az.buta.auth.SessionService;
 import az.buta.auth.SignInService;
 import az.buta.auth.dto.CompleteProfileRequest;
+import az.buta.auth.dto.GuestSignInRequest;
 import az.buta.auth.dto.OtpRequest;
 import az.buta.auth.dto.OtpRequestResponse;
 import az.buta.auth.dto.OtpVerifyRequest;
+import az.buta.auth.dto.RegisterRequest;
 import az.buta.auth.dto.SessionResponse;
 import az.buta.auth.dto.SignInResponse;
 import az.buta.auth.dto.UsernameAvailability;
@@ -37,12 +41,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final SignInService signIn;
+    private final RegistrationService registration;
+    private final GuestSignInService guestSignIn;
     private final SessionService sessions;
     private final SessionCookies cookies;
     private final UserAccountService accounts;
 
-    public AuthController(SignInService signIn, SessionService sessions, SessionCookies cookies, UserAccountService accounts) {
+    public AuthController(SignInService signIn, RegistrationService registration, GuestSignInService guestSignIn, SessionService sessions,
+                          SessionCookies cookies, UserAccountService accounts) {
         this.signIn = signIn;
+        this.registration = registration;
+        this.guestSignIn = guestSignIn;
         this.sessions = sessions;
         this.cookies = cookies;
         this.accounts = accounts;
@@ -63,6 +72,22 @@ public class AuthController {
     public SignInResponse verify(@Valid @RequestBody OtpVerifyRequest request, HttpServletRequest http, HttpServletResponse response) {
         SignInService.SignInResult result = signIn.verify(request.email(), request.code(), http.getHeader(HttpHeaders.USER_AGENT),
                 http.getRemoteAddr(), LocaleContextHolder.getLocale());
+        cookies.write(response, result.sessionToken());
+        return result.response();
+    }
+
+    @PostMapping("/register")
+    @ResponseStatus(HttpStatus.CREATED)
+    public SignInResponse register(@Valid @RequestBody RegisterRequest request, HttpServletRequest http, HttpServletResponse response) {
+        SignInService.SignInResult result = registration.register(request, http.getHeader(HttpHeaders.USER_AGENT), http.getRemoteAddr(),
+                LocaleContextHolder.getLocale());
+        cookies.write(response, result.sessionToken());
+        return result.response();
+    }
+
+    @PostMapping("/guest")
+    public SignInResponse guest(@Valid @RequestBody GuestSignInRequest request, HttpServletRequest http, HttpServletResponse response) {
+        SignInService.SignInResult result = guestSignIn.signIn(request.kind(), http.getHeader(HttpHeaders.USER_AGENT), http.getRemoteAddr());
         cookies.write(response, result.sessionToken());
         return result.response();
     }

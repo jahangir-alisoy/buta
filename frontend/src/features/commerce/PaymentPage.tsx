@@ -101,10 +101,9 @@ export default function PaymentPage() {
         <div className="card glass stack">
           <div className="row spread">
             <h1 className="section-title">{t('checkout.sandboxTitle')}</h1>
-            <span className="badge badge-soft">{t('common.sandbox')}</span>
           </div>
           <p className="muted small">{t('checkout.sandboxText')}</p>
-          <dl className="stack" style={{ gap: 8, margin: 0 }}>
+          <dl className="kv-list">
             <div className="kv">
               <dt>{t('orders.orderNumber', { number: data.orderNumber })}</dt>
               <dd>{formatMoney(data.total)}</dd>
@@ -120,7 +119,7 @@ export default function PaymentPage() {
             </p>
           )}
           <button type="button" className="btn btn-primary btn-lg btn-block" onClick={() => confirm('SUCCEEDED')} disabled={busy}>
-            {t('checkout.simulateSuccess')}
+            {t('checkout.simulateSuccess', { amount: formatMoney(data.total) })}
           </button>
           <button type="button" className="btn btn-secondary btn-block" onClick={() => confirm('FAILED')} disabled={busy}>
             {t('checkout.simulateFailure')}

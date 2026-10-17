@@ -68,6 +68,9 @@ public class SignInService {
         if (user.status() == UserStatus.SUSPENDED) {
             throw ApiException.of(ErrorCode.OTP_INVALID);
         }
+        if (user.markEmailVerified(clock.instant())) {
+            sessions.revokeAll(user.getId(), "EMAIL_VERIFIED");
+        }
         if (adminBootstrap.synchronize(user)) {
             sessions.revokeAll(user.getId(), "ROLE_CHANGED");
         }

@@ -7,7 +7,6 @@ export default function AboutPage() {
     <InfoPage title={t('info.aboutTitle')}>
       <p>{t('info.aboutText1')}</p>
       <p>{t('info.aboutText2')}</p>
-      <p className="alert alert-info">{t('info.aboutText3')}</p>
     </InfoPage>
   );
 }
