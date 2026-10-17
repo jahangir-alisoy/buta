@@ -28,11 +28,11 @@ The full product and engineering plan lives in [`docs/PROJECT_PLAN.md`](docs/PRO
 ## Repository layout
 
 ```
-/backend             Spring Boot 3.5 (Java 21) REST API, Liquibase migrations, tests
+/backend             Spring Boot 3.5 (Java 21, Gradle) REST API, Liquibase migrations, tests
 /frontend            React 19 + TypeScript + Vite SPA, Nginx runtime image
 /docs/PROJECT_PLAN.md  Requirements, architecture and delivery plan
 /docker-compose.yml  PostgreSQL, Mailpit, backend and frontend for local use
-/render.yaml         Render blueprint (database + two Docker web services)
+/docs/DEPLOY_RENDER.md  Step-by-step Render deployment
 /.env.example        Every environment variable with safe local defaults
 /SECURITY.md         Threat model and production checklist
 ```
@@ -43,7 +43,7 @@ The full product and engineering plan lives in [`docs/PROJECT_PLAN.md`](docs/PRO
 Browser ──HTTPS──▶ frontend (Nginx)
                     ├─ serves the SPA (static, immutable assets, SPA fallback)
                     └─ /api/* ──proxy──▶ backend (Spring Boot) ──▶ PostgreSQL
-                                              └─▶ SMTP (Mailpit locally)
+                                              └─▶ Gmail SMTP (Mailpit locally)
 ```
 
 - **Same origin.** The SPA calls `/api/v1/...` on its own origin; Nginx proxies to the backend. Session and CSRF cookies therefore stay first-party (`SameSite=Lax`, `HttpOnly`, `__Host-` prefix in production) and no CORS is needed.
@@ -79,7 +79,7 @@ Backend (Java 21):
 
 ```bash
 cd backend
-SPRING_PROFILES_ACTIVE=dev ./mvnw spring-boot:run
+SPRING_PROFILES_ACTIVE=dev ./gradlew bootRun
 ```
 
 Frontend (Node 22):
@@ -127,8 +127,8 @@ All configuration comes from environment variables; [`.env.example`](.env.exampl
 | `APP_SESSION_COOKIE_SECURE`, `APP_SESSION_COOKIE_NAME` | Cookie hardening (`true` / `__Host-buta_session` in `prod`) |
 | `APP_DEMO_MODE` | Shows the demo banner; required for sandbox payments in `prod` |
 | `APP_LIQUIBASE_CONTEXTS` | `default` for real data, `default,demo` to load demo content |
-| `SMTP_*`, `MAIL_FROM` | Outgoing email |
-| `PORT` / `API_UPSTREAM` | Frontend container: listen port and backend `host:port` |
+| `MAIL_USERNAME`, `MAIL_APP_PASSWORD` | Gmail address and its app password used to send sign-in codes (the `dev` profile sends to Mailpit instead) |
+| `PORT` / `API_UPSTREAM` | Frontend container: listen port and backend address (`https://…` public URL or `http://host:port` internal address) |
 
 Business settings (pricing, loyalty, membership, recommendation weights) live in the database and are edited in **Admin → Business settings**; every change is validated and audited.
 
@@ -145,10 +145,12 @@ Business settings (pricing, loyalty, membership, recommendation weights) live in
 **Backend** — run from `backend/` (integration tests need Docker for Testcontainers):
 
 ```bash
-./mvnw verify
+./gradlew build            # compile, unit tests (test) and integration tests (integrationTest)
+./gradlew test             # unit tests only
+./gradlew integrationTest  # Testcontainers integration tests only
 ```
 
-Last run: **24 unit tests** (pricing calculator incl. the worked bundle example, recommendation scoring and re-ranking, text rules) and **63 integration tests** against PostgreSQL 16 in Testcontainers — catalog browsing, the OTP auth flow and its abuse limits, authorization/IDOR, checkout and refunds, inventory concurrency (exactly 5 of 20 concurrent checkouts succeed for 5 units), loyalty tasks/tiers/referrals, recommendations, admin operations, profile and demo-data integrity. All passed.
+Last run (Gradle): **24 unit tests** (pricing calculator incl. the worked bundle example, recommendation scoring and re-ranking, text rules) and **63 integration tests** against PostgreSQL 16 in Testcontainers — catalog browsing, the OTP auth flow and its abuse limits, authorization/IDOR, checkout and refunds, inventory concurrency (exactly 5 of 20 concurrent checkouts succeed for 5 units), loyalty tasks/tiers/referrals, recommendations, admin operations, profile and demo-data integrity. All passed.
 
 **Frontend** — per the project owner's instruction there is **no frontend test suite**; the frontend is verified by `npm run build` (strict TypeScript type-check + Vite production build), which passes.
 
@@ -156,22 +158,9 @@ Last run: **24 unit tests** (pricing calculator incl. the worked bundle example,
 
 ## Deployment on Render
 
-The [`render.yaml`](render.yaml) blueprint creates:
+Three separate Render resources: a PostgreSQL database, the backend as a Docker web service and the frontend as a Docker web service (Nginx) that forwards `/api` to the backend. Email goes through a Gmail account with an app password.
 
-- `buta-db` — PostgreSQL 16;
-- `buta-backend` — Docker web service (`prod` profile, demo contexts, generated secrets, health check `/actuator/health/readiness`);
-- `buta-frontend` — Docker web service (Nginx) that proxies `/api` to the backend's internal `host:port`.
-
-Steps:
-
-1. In Render, **New → Blueprint** and select this repository/branch.
-2. Fill the variables marked `sync: false` on `buta-backend`:
-   - `APP_PUBLIC_BASE_URL` — the frontend URL, e.g. `https://buta-frontend.onrender.com`;
-   - `APP_ADMIN_EMAILS` — your admin email(s);
-   - `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `MAIL_FROM` — a real SMTP provider (needed to receive sign-in codes).
-3. Deploy, then open the frontend URL. The demo banner and sandbox payments stay on because `APP_DEMO_MODE=true`.
-
-For a real launch see the checklist in [`SECURITY.md`](SECURITY.md): turn off the `demo` context, integrate a real payment provider, use a custom domain and review legal texts.
+Follow the step-by-step guide: **[docs/DEPLOY_RENDER.md](docs/DEPLOY_RENDER.md)**.
 
 ## Business rules in short
 
@@ -197,4 +186,4 @@ For a real launch see the checklist in [`SECURITY.md`](SECURITY.md): turn off th
 - No self-service data export/account deletion, SMS verification, seat selection or points expiry.
 - Recommendations are rule-based; the A/B plumbing ships with a single variant.
 - Real Safari/iOS behaviour still needs manual verification on devices.
-- Demo content is illustrative; on Render, sign-in requires a configured SMTP provider.
+- Demo content is illustrative; on Render, sign-in requires the Gmail credentials (`MAIL_USERNAME`, `MAIL_APP_PASSWORD`).

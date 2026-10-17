@@ -11,6 +11,7 @@ map $http_x_forwarded_host $forwarded_host {
 server {
     listen ${PORT};
     server_name _;
+    resolver ${NGINX_LOCAL_RESOLVERS} valid=30s ipv6=off;
     root /usr/share/nginx/html;
     index index.html;
 
@@ -36,9 +37,14 @@ server {
     }
 
     location /api/ {
-        proxy_pass http://${API_UPSTREAM};
+        set $api_upstream "${API_UPSTREAM}";
+        proxy_pass $api_upstream;
         proxy_http_version 1.1;
-        proxy_set_header Host $http_host;
+        proxy_ssl_server_name on;
+        proxy_ssl_verify on;
+        proxy_ssl_verify_depth 3;
+        proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;
+        proxy_set_header Host $proxy_host;
         proxy_set_header X-Forwarded-Host $forwarded_host;
         proxy_set_header X-Forwarded-Proto $forwarded_proto;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

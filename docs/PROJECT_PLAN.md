@@ -64,7 +64,7 @@
 | Tool | Status |
 |---|---|
 | Java | OpenJDK 21.0.12 |
-| Maven | 3.9.11 (the project also ships the Maven Wrapper `mvnw`) |
+| Gradle | 8.14.3 (the project ships the Gradle Wrapper `gradlew`) |
 | Node / npm / pnpm | 22.22.0 / 10.9.4 / 10.28.0 — the project uses **npm** |
 | PostgreSQL | 16.15 installed, stopped by default (`pg_ctlcluster 16 main start`) |
 | Docker | Engine 29.8 + Compose v5.6. Daemon is not auto-started (`dockerd &`). Docker Hub anonymous pulls hit 429 rate limits; `mirror.gcr.io/library/<image>` works — pull from the mirror and `docker tag` to the Docker Hub name |
@@ -79,8 +79,8 @@
 
 | # | Topic | Decision | Rationale |
 |---|---|---|---|
-| D1 | Monorepo | `/backend`, `/frontend`, `/docker-compose.yml`, `/render.yaml`, `/README.md`, `/SECURITY.md`, `/.env.example`, `/docs/` | Layout from the brief plus deployment and security docs |
-| D2 | Backend | Java 21, Spring Boot 3.5.16, **Maven** single module, modular monolith (package-by-feature) | One deployable with clear boundaries, no microservice overhead |
+| D1 | Monorepo | `/backend`, `/frontend`, `/docker-compose.yml`, `/docs/DEPLOY_RENDER.md`, `/README.md`, `/SECURITY.md`, `/.env.example`, `/docs/` | Layout from the brief plus deployment and security docs |
+| D2 | Backend | Java 21, Spring Boot 3.5.16, **Gradle** (Kotlin DSL) single module, modular monolith (package-by-feature) | One deployable with clear boundaries, no microservice overhead |
 | D3 | Database | PostgreSQL 16 | Brief; Render managed PostgreSQL |
 | D4 | Migrations | **Liquibase**: formatted-SQL changesets included from a YAML master changelog; Hibernate `ddl-auto=validate` | Full PostgreSQL features (CHECK constraints, partial indexes) with explicit rollbacks; schema owned by migrations only |
 | D5 | Auth | Passwordless email OTP + **opaque server-side session** in an HttpOnly cookie; CSRF token; roles loaded from the database on every request | Instant revocation, no secrets readable by JavaScript, no refresh-token rotation races between tabs. JWT access/refresh is the rejected alternative |
@@ -92,7 +92,7 @@
 | D11 | Time | `timestamptz` + `Instant` (UTC); business time zone `Asia/Baku`; injected `Clock` | Consistent storage; testable expiry logic |
 | D12 | Content i18n | Localized text as JSONB `{"az": "...", "en": "..."}`, both keys required | New languages without schema changes; no mixed-language fallbacks |
 | D13 | Payments | `PaymentProvider` interface + `SandboxPaymentProvider`, always labeled "sandbox" | No real credentials; honest demo |
-| D14 | Email | `EmailSender` interface: SMTP for every real environment, Mailpit locally, in-memory mailbox for dev/test only | Provider abstraction and safe development workflow |
+| D14 | Email | `EmailSender` interface: Gmail SMTP with an app password (`MAIL_USERNAME`, `MAIL_APP_PASSWORD`) for deployed environments, Mailpit locally (`dev` profile), in-memory mailbox for tests | Provider abstraction and safe development workflow |
 | D15 | File storage | `FileStorage` interface: **database** (default, survives Render redeploys) and local disk; S3-compatible later | Render's container filesystem is ephemeral |
 | D16 | Recommendations | Explainable weighted rules; weights and signal settings stored in the database | Brief; ML only when real data exists |
 | D17 | Rate limiting | `RateLimiter` interface with in-memory (Caffeine) buckets per IP; OTP attempt and lock counters persisted in the database | Works on a single instance; security-critical limits survive restarts |
@@ -882,12 +882,12 @@ The application refuses to start when any of these hold:
 ### 14.4 Production security checklist (copied into SECURITY.md)
 - [ ] All secrets set in Render, generated randomly, never committed; rotation procedure documented
 - [ ] HTTPS only, HSTS enabled, `__Host-` session cookie, custom domain configured
-- [ ] SMTP provider configured with SPF, DKIM and DMARC for the sender domain
+- [ ] Gmail sender account protected with 2-Step Verification; app password stored only in Render
 - [ ] Dev mailbox disabled, API docs disabled, `demo` Liquibase context off for real production
 - [ ] `APP_ADMIN_EMAILS` reviewed; admin accounts reviewed quarterly
 - [ ] Database backups / point-in-time recovery enabled; restore tested
 - [ ] Application database user is not a superuser
-- [ ] Dependency scanning (`./mvnw dependency-check` or equivalent, `npm audit`) and container image scanning in CI
+- [ ] Dependency scanning (Gradle dependency scanning, `npm audit`) and container image scanning in CI
 - [ ] Logs verified free of OTPs, tokens, cookies and raw emails; retention configured
 - [ ] Rate limits tuned; distributed rate limiting in place before running more than one backend instance
 - [ ] Monitoring and alerting (health, error rate, latency, failed logins, OTP lockouts)
@@ -944,9 +944,7 @@ Operational and security settings come from environment variables. Business rule
 | `APP_OTP_TTL`, `APP_OTP_MAX_ATTEMPTS`, `APP_OTP_RESEND_COOLDOWN` | OTP rules | `PT10M`, `5`, `PT60S` | same |
 | `APP_OTP_MAX_PER_EMAIL_HOUR`, `APP_OTP_MAX_PER_IP_HOUR` | OTP request limits | `5`, `20` | tuned |
 | `APP_ADMIN_EMAILS` | Admin bootstrap list | `admin@buta.test` | real admin emails |
-| `APP_MAIL_PROVIDER` | `smtp` or `in-memory` (dev/test only) | `smtp` (Mailpit) | `smtp` |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_STARTTLS` | SMTP connection | `localhost`, `1025`, empty, empty, `false` | provider values, STARTTLS `true` |
-| `MAIL_FROM` | Sender, e.g. `Buta <no-reply@your-domain>` | `Buta <no-reply@buta.test>` | verified sender |
+| `MAIL_USERNAME`, `MAIL_APP_PASSWORD` | Gmail address and app password (smtp.gmail.com:587, STARTTLS); sender is `Buta <MAIL_USERNAME>` | unused (`dev` profile sends to Mailpit) | required |
 | `APP_DEV_MAILBOX_ENABLED` | Dev mailbox endpoint (dev profile only) | `false` | must be `false` |
 | `APP_PAYMENT_PROVIDER` | Payment provider | `sandbox` | `sandbox` until a real provider exists |
 | `APP_STORAGE_PROVIDER`, `APP_STORAGE_LOCAL_DIR` | `database` or `local` | `database`, `./data/uploads` | `database` |
@@ -1175,7 +1173,7 @@ Initial-route JS ≤ 200 KB gzip (excluding lazy 3D and admin chunks); route-lev
 
 ### 19.4 Commands (results reported exactly as run)
 ```
-cd backend  && ./mvnw -B verify
+cd backend  && ./gradlew build
 cd frontend && npm ci && npm run lint && npm run typecheck && npm test -- --run && npm run build
 cd frontend && npx playwright test          (stack running)
 docker compose up --build
@@ -1187,10 +1185,10 @@ docker compose up --build
 
 Vertical slices: each phase delivers backend, frontend, migrations, admin APIs and tests for its feature, so integration problems surface early. The admin **UI** is built in Phase 7; admin **APIs** are built in the phase that owns the feature.
 
-**Routine for every phase:** Liquibase changesets → entities, repositories, services, controllers, DTOs → backend tests → frontend pages and components with az + en keys → frontend tests → run `./mvnw -B verify` and `npm run lint && npm run typecheck && npm test -- --run && npm run build` → manual smoke test through the Vite proxy → commit `Phase N: <summary>` and push.
+**Routine for every phase:** Liquibase changesets → entities, repositories, services, controllers, DTOs → backend tests → frontend pages and components with az + en keys → frontend tests → run `./gradlew build` and `npm run lint && npm run typecheck && npm test -- --run && npm run build` → manual smoke test through the Vite proxy → commit `Phase N: <summary>` and push.
 
 ### Phase 0 — Foundations
-- [ ] Monorepo skeleton: `/backend` (Spring Boot 3.5.16, Java 21, Maven Wrapper), `/frontend` (Vite + React + TS), root `.gitignore`, `.editorconfig`, `.env.example`, `docker-compose.yml` (postgres:16-alpine, axllent/mailpit), README stub
+- [ ] Monorepo skeleton: `/backend` (Spring Boot 3.5.16, Java 21, Gradle Wrapper), `/frontend` (Vite + React + TS), root `.gitignore`, `.editorconfig`, `.env.example`, `docker-compose.yml` (postgres:16-alpine, axllent/mailpit), README stub
 - [ ] Backend: `@ConfigurationProperties` records, `Clock` bean, Problem Details handler, request-id filter, `MessageSource` az/en, Liquibase master + `001`–`003`, actuator health, springdoc, security skeleton (public catalog GETs, CSRF, Origin check, headers)
 - [ ] Frontend: tokens and global styles, AppShell (glass header, mobile tab bar), router, i18n (az/en), theme provider + `theme-init.js`, API client, error boundary, not-found page, demo banner
 - [ ] Testcontainers base class; Vitest setup; ESLint/Prettier
@@ -1245,7 +1243,7 @@ Vertical slices: each phase delivers backend, frontend, migrations, admin APIs a
 - **Done when:** no horizontal overflow at any tested viewport, budgets met, reduced-motion and no-WebGL fallbacks verified.
 
 ### Phase 9 — Delivery
-- [ ] Production Dockerfiles, Nginx template, full-stack `docker-compose.yml`, `render.yaml`, complete `.env.example`
+- [ ] Production Dockerfiles, Nginx template, full-stack `docker-compose.yml`, Render deployment guide, complete `.env.example`
 - [ ] README: architecture, local setup, demo workflow and accounts, environment variables, migrations, tests, deployment, limitations, decisions, manual device checklist
 - [ ] SECURITY.md: threat model and production checklist (§14)
 - [ ] Optional: GitHub Actions CI (backend verify, frontend lint/typecheck/test/build)
@@ -1257,7 +1255,7 @@ Vertical slices: each phase delivers backend, frontend, migrations, admin APIs a
 ## 21. Deployment (Docker, Compose, Render)
 
 ### 21.1 Backend Dockerfile (multi-stage)
-- Build stage: `maven:3.9-eclipse-temurin-21-alpine`; dependency layer cached (`dependency:go-offline`), then `mvn -B -DskipTests package`. Tests run locally and in CI, not inside the image build.
+- Build stage: `eclipse-temurin:21-jdk-alpine` with the Gradle Wrapper; dependency layer cached (`./gradlew dependencies`), then `./gradlew bootJar`. Tests run locally and in CI, not inside the image build.
 - Runtime stage: `eclipse-temurin:21-jre-alpine`, non-root user, `EXPOSE 8080`, `ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/app.jar"]`.
 - Spring settings: `server.port=${PORT:8080}`, `server.shutdown=graceful`, `server.forward-headers-strategy=native` with trusted internal proxies.
 
@@ -1271,72 +1269,19 @@ Vertical slices: each phase delivers backend, frontend, migrations, admin APIs a
 |---|---|---|---|
 | `db` | `postgres:16-alpine` | 5432 | named volume, `pg_isready` healthcheck |
 | `mailpit` | `axllent/mailpit` | 1025 (SMTP), 8025 (UI) | catches every OTP email locally |
-| `backend` | `./backend` | 8080 | profile `dev`, contexts `default,demo`, SMTP → `mailpit:1025`, waits for healthy `db` |
+| `backend` | `./backend` | 8080 | profile `dev`, contexts `default,demo`, mail → `mailpit:1025`, waits for healthy `db` |
 | `frontend` | `./frontend` | 8081 → 8080 | `API_UPSTREAM=http://backend:8080` |
 
 Workflows:
 - Full stack: `cp .env.example .env && docker compose up --build` → app http://localhost:8081, Mailpit http://localhost:8025, Swagger http://localhost:8080/api/v1/docs.
-- Hot reload: `docker compose up -d db mailpit`, `cd backend && ./mvnw spring-boot:run`, `cd frontend && npm run dev` → http://localhost:5173.
+- Hot reload: `docker compose up -d db mailpit`, `cd backend && ./gradlew bootRun`, `cd frontend && npm run dev` → http://localhost:5173.
 - Demo sign-in: enter `kamran.plus@buta.test`, open Mailpit, copy the code.
 - Reset the database: `docker compose down -v`.
 
 ### 21.4 Render
 **Selected topology:** Render PostgreSQL `buta-db`; backend `buta-backend` as a Docker web service; frontend `buta-frontend` as a Docker web service (Nginx). The frontend is a Docker service rather than a static site so that Nginx can proxy `/api` on the same origin, keeping cookies first-party on Safari and removing CORS from production.
 
-**Blueprint (`render.yaml`) outline** — exact keys validated against current Render documentation during implementation:
-```yaml
-databases:
-  - name: buta-db
-    databaseName: buta
-    user: buta
-services:
-  - type: web
-    name: buta-backend
-    runtime: docker
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
-    healthCheckPath: /actuator/health
-    envVars:
-      - key: SPRING_PROFILES_ACTIVE
-        value: prod
-      - key: DB_HOST
-        fromDatabase: { name: buta-db, property: host }
-      - key: DB_PORT
-        fromDatabase: { name: buta-db, property: port }
-      - key: DB_NAME
-        fromDatabase: { name: buta-db, property: database }
-      - key: DB_USER
-        fromDatabase: { name: buta-db, property: user }
-      - key: DB_PASSWORD
-        fromDatabase: { name: buta-db, property: password }
-      - key: APP_OTP_PEPPER
-        generateValue: true
-      - key: APP_IP_HASH_SECRET
-        generateValue: true
-      - key: SMTP_HOST
-        sync: false
-  - type: web
-    name: buta-frontend
-    runtime: docker
-    dockerfilePath: ./frontend/Dockerfile
-    dockerContext: ./frontend
-    healthCheckPath: /healthz
-    envVars:
-      - key: API_UPSTREAM
-        sync: false
-```
-
-**Steps**
-1. Push the repository; in Render create a Blueprint from `render.yaml` (or create the three resources manually with the same settings).
-2. Database: Render PostgreSQL 16. Render's connection string is `postgresql://…`, not JDBC, so the backend receives host, port, database, user and password separately and builds the JDBC URL itself.
-3. Backend environment: `SPRING_PROFILES_ACTIVE=prod`, database variables, generated secrets, SMTP variables and `MAIL_FROM` (entered manually as secrets), `APP_PUBLIC_BASE_URL` (frontend URL), `APP_ADMIN_EMAILS`, `APP_SESSION_COOKIE_NAME=__Host-buta_session`, `APP_SESSION_COOKIE_SECURE=true`. A demo deployment also sets `APP_DEMO_MODE=true` and `APP_LIQUIBASE_CONTEXTS=default,demo`; real production sets `APP_DEMO_MODE=false` and `APP_LIQUIBASE_CONTEXTS=default`.
-4. Frontend environment: `API_UPSTREAM` = the backend's private-network address (`http://<internal-host>:<port>` from the backend's Connect panel). If the chosen plan cannot use private networking, use the backend's public `https://<name>.onrender.com` URL instead. Optionally run the backend as a private service (no public URL) when the plan supports it.
-5. Health checks: backend `/actuator/health`, frontend `/healthz`.
-6. Migrations: Liquibase runs on backend start; the first deploy creates the schema; later deploys apply new changesets; the lock table prevents concurrent runs; readiness waits for migrations.
-7. CORS: not needed in this topology. For a split static-site deployment, set `APP_ALLOWED_ORIGINS` and `VITE_API_BASE_URL`, and serve both on one registrable custom domain (e.g. `app.example.az` and `api.example.az`) so cookies stay same-site.
-8. Custom domain: add it to the frontend service (Render manages TLS) and update `APP_PUBLIC_BASE_URL`.
-9. Email: sign-in on Render requires a real SMTP provider. Seeded `.test` users cannot receive email there; testers register with their own address. Browsing works without SMTP.
-10. Check the current Render plan limits (instance sleep, memory, private networking, database connections) and size `DB_POOL_SIZE` and `JAVA_OPTS` accordingly.
+**Deployment steps:** see [`docs/DEPLOY_RENDER.md`](DEPLOY_RENDER.md) — database, backend and frontend are created as three separate Render resources in one region; `API_UPSTREAM` on the frontend points to the backend's public URL (any plan) or its private-network address (paid backend); email uses Gmail with an app password.
 
 ---
 
