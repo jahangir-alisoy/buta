@@ -10,9 +10,9 @@ You will create **three separate resources** in Render, all in the **same region
 
 Visitors only open `buta-web`. Because the browser talks to one address, sign-in cookies work in every browser, including Safari, and no CORS setup is needed.
 
-> **How API calls flow.** The browser always calls `/api/...` on the **frontend** address (for example `https://buta-web.onrender.com/api/v1/offers`). That is expected: Nginx inside the frontend service forwards every `/api/*` request to `API_UPSTREAM`. Seeing your frontend domain in DevTools → Network is correct.
+> **How API calls flow.** The frontend is a Render **Static Site**. The browser calls the backend directly at `https://<backend>.onrender.com/api/v1/...`. The backend allows this through CORS for the address in `APP_PUBLIC_BASE_URL`, and sends its cookies with `SameSite=None` (`APP_COOKIE_SAME_SITE=None`).
 >
-> This only works when the frontend is a **Web Service** with runtime **Docker**. A Render **Static Site** has no Nginx, so `/api/*` would return the HTML page or 404. Do **not** set `VITE_API_URL` or `VITE_API_BASE_URL`: the app ignores the first, and pointing the second at the backend breaks sign-in (cookies are not shared between two `onrender.com` subdomains).
+>  **Browser note:** this setup relies on cross-site cookies. Safari (iPhone/iPad/Mac) and browsers with third-party cookies blocked will not keep you signed in. Browsing works everywhere; for sign-in on Safari, use one custom domain for both (e.g. `buta.az` and `api.buta.az`).
 
 Total time: about 20 minutes.
 
@@ -105,6 +105,7 @@ You don't need to create any tables; the backend creates the schema on first sta
 | `MAIL_APP_PASSWORD` | your 16-character app password, without spaces |
 | `APP_DEMO_MODE` | `true` |
 | `APP_LIQUIBASE_CONTEXTS` | `default,demo` to load the demo catalog, or `default` for an empty catalog |
+| `APP_COOKIE_SAME_SITE` | `None` (required because the frontend is a separate static site) |
 
 5. Click **Create Web Service**. The first build takes a few minutes (Gradle downloads its dependencies).
 6. When the deploy succeeds (the log shows `Started ButaApplication`), copy the service address shown at the top, e.g. `https://buta-api.onrender.com`. Check it works by opening `https://buta-api.onrender.com/api/v1/config`; it should show a small JSON with `"demoMode":true`.
@@ -116,28 +117,26 @@ Notes:
 
 ---
 
-## Step 3 — Create the frontend (`buta-web`)
+## Step 3 — Create the frontend (`buta-web`, Static Site)
 
-1. **New +** → **Web Service** (not *Static Site*) → the same GitHub repository.
+1. **New +** → **Static Site** → the same GitHub repository.
 2. Fill in:
    - **Name:** `buta-web`
    - **Branch:** the same branch
-   - **Region:** the same region
-   - **Language / Runtime:** **Docker**
-   - **Instance Type:** your choice
-3. Under **Advanced**:
-   - **Dockerfile Path:** `./frontend/Dockerfile`
-   - **Docker Build Context Directory:** `./frontend`
-   - **Health Check Path:** leave empty
-4. Under **Environment Variables**, add one variable:
+   - **Root Directory:** `frontend`
+   - **Build Command:** `npm ci && npm run build`
+   - **Publish Directory:** `dist`
+3. **Environment Variables:** add one:
 
 | Key | Value |
 |---|---|
-| `API_UPSTREAM` | the backend address from Step 2, e.g. `https://buta-api.onrender.com` |
+| `VITE_API_URL` | the backend address from Step 2, e.g. `https://naxish-backend.onrender.com` (no trailing slash, no `/api`) |
 
-   No other variables are needed on the frontend.
+4. Click **Create Static Site**.
+5. Open the site → **Redirects/Rewrites** → add a rule so page refreshes work:
+   - **Source:** `/*` **Destination:** `/index.html` **Action:** **Rewrite**
 
-5. Click **Create Web Service** and wait for the deploy to finish.
+`VITE_API_URL` is read at build time: after changing it, run **Manual Deploy → Clear build cache & deploy**.
 
 ---
 
@@ -154,7 +153,7 @@ Notes:
 2. Click **Sign in**, enter the email you put in `APP_ADMIN_EMAILS` and press **Continue**.
 3. The 6-digit code arrives in that inbox within a minute (check **Spam** the first time and mark it "Not spam").
 4. After signing in, **Admin** appears in the top navigation (on a phone: **Account → Admin console**).
-5. In DevTools → Network, open any `/api/v1/...` request on the frontend address: the response must be **JSON**. If it is HTML, the frontend was created as a Static Site; recreate it as described in Step 3.
+5. In DevTools → Network, `/api/v1/...` requests go to the backend address and return **JSON**, with no CORS errors in the Console.
 
 Done. Every push to the deployed branch redeploys the changed services automatically.
 
@@ -197,16 +196,6 @@ The setup above works on any plan. Things to know:
 
 - **Free web services sleep** after about 15 minutes without traffic. The next visit wakes them, which takes up to a minute (both `buta-web` and `buta-api` may need to wake).
 - **Free Render Postgres** databases are temporary (they expire after a limited time; check Render's current terms). Use a paid database plan for data you want to keep.
-- **Sign-in rate limits:** the backend limits sign-in codes per visitor IP (20 per hour) and verifications per IP (30 per 10 minutes). With `API_UPSTREAM` set to the public backend address, all visitors reach the backend through the frontend, so they share one IP. For a public launch on this setup, raise the limits on `buta-api`, e.g. `APP_OTP_MAX_PER_IP_HOUR=300` and `APP_OTP_MAX_VERIFY_PER_IP=500`. The per-email limit (5 codes per hour per address) still protects each account.
-
-### Optional: private network (paid backend)
-
-If `buta-api` is on a **paid** instance type, the frontend can reach it over Render's private network. That is faster, keeps real visitor IPs and makes the IP raise above unnecessary:
-
-1. Open `buta-api` → **Connect** → **Internal** and copy the internal address (it looks like `buta-api-xxxx:10000`).
-2. Set `API_UPSTREAM` on `buta-web` to that address (e.g. `http://buta-api-xxxx:10000`) and save.
-
-Free web services cannot *receive* private-network traffic, which is why the public address is the default above.
 
 ---
 
@@ -225,8 +214,9 @@ Free web services cannot *receive* private-network traffic, which is why the pub
 | `buta-api` log shows a database connection error | `DB_HOST` must be the **internal** hostname, and the database must be in the same region. Double-check `DB_PASSWORD`. |
 | Sign-in code never arrives | Check Spam. In the `buta-api` logs, `Email delivery failed … AuthenticationFailedException` means a wrong Gmail address or app password (remove spaces; 2-Step Verification must be on; Google Workspace admins can disable app passwords). |
 | "The request came from an origin that is not allowed" when pressing Continue | `APP_PUBLIC_BASE_URL` on `buta-api` does not exactly match the address in the browser bar. |
-| `/api/...` requests on the frontend address return HTML or 404 | The frontend was created as a **Static Site**. Delete it and create a **Web Service** with runtime **Docker** (Step 3). |
-| The site loads but every action fails, or `/api/...` returns 502 | `API_UPSTREAM` on `buta-web` is wrong, or the backend is still waking up (free plan); wait a minute and retry. |
+| CORS error in the Console | `APP_PUBLIC_BASE_URL` on the backend must exactly equal the frontend address (e.g. `https://naxish.onrender.com`, no trailing slash). |
+| Requests go to the frontend address instead of the backend | `VITE_API_URL` was missing at build time. Set it and run **Clear build cache & deploy**. |
+| Signed in, but after a refresh you are signed out again | The browser blocks cross-site cookies (Safari, or third-party cookies blocked). Use Chrome/Firefox with default settings, or a shared custom domain. |
 | I signed in but there is no **Admin** link | The backend has not been redeployed with migration `010-owner-accounts.sql` yet, or the email is not an admin. Redeploy `buta-api`, then sign out and sign in again. |
 | The first visit takes a long time | Free services are waking up from sleep (see [Plans and limits](#plans-and-limits)). |
 
@@ -254,4 +244,4 @@ Free web services cannot *receive* private-network traffic, which is why the pub
 
 | Key | Required | Purpose |
 |---|---|---|
-| `API_UPSTREAM` | yes | Backend address: public `https://…onrender.com` or internal `http://host:port` |
+| `VITE_API_URL` | yes | Backend address, e.g. `https://naxish-backend.onrender.com` (build time) |

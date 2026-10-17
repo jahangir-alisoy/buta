@@ -17,6 +17,13 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfException;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 
 import static az.buta.security.SessionAuthenticationFilter.ACCOUNT_ACTIVE;
 import static az.buta.security.SessionAuthenticationFilter.ACCOUNT_PROFILE_INCOMPLETE;
@@ -32,9 +39,10 @@ public class SecurityConfig {
                                                    ProblemResponseWriter writer, AppProperties properties) throws Exception {
         CookieCsrfTokenRepository csrfRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
         csrfRepository.setCookiePath("/");
-        csrfRepository.setCookieCustomizer(cookie -> cookie.sameSite("Lax").secure(properties.session().cookieSecure()));
+        csrfRepository.setCookieCustomizer(cookie -> cookie.sameSite(properties.session().cookieSameSite()).secure(properties.session().cookieSecure()));
 
         http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource(properties)))
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfRepository)
                         .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler()))
@@ -80,5 +88,20 @@ public class SecurityConfig {
         boolean incomplete = authentication != null && authentication.getAuthorities().stream()
                 .anyMatch(authority -> ACCOUNT_PROFILE_INCOMPLETE.equals(authority.getAuthority()));
         return incomplete ? ErrorCode.PROFILE_INCOMPLETE : ErrorCode.FORBIDDEN;
+    }
+
+    private static CorsConfigurationSource corsConfigurationSource(AppProperties properties) {
+        List<String> origins = new ArrayList<>(properties.allowedOrigins());
+        origins.add(properties.publicBaseUrl());
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(origins.stream().map(origin -> origin.trim().replaceAll("/+$", "")).filter(origin -> !origin.isEmpty()).toList());
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setExposedHeaders(List.of("X-XSRF-TOKEN"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(Duration.ofHours(1));
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/api/**", configuration);
+        return source;
     }
 }

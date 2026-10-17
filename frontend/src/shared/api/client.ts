@@ -1,6 +1,13 @@
 import type { FieldError } from './types';
 
-const BASE = (import.meta.env.VITE_API_BASE_URL ?? '/api').replace(/\/$/, '');
+const ORIGIN = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '');
+const BASE = `${ORIGIN}/api`;
+
+let csrfToken: string | null = null;
+
+export function apiUrl(path: string): string {
+  return path.startsWith('/api') ? `${ORIGIN}${path}` : path;
+}
 
 let currentLanguage = 'az';
 let unauthorizedHandler: (() => void) | null = null;
@@ -58,12 +65,13 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
     body = JSON.stringify(options.body);
   }
   if (method !== 'GET') {
-    const token = readCookie('XSRF-TOKEN');
+    const token = csrfToken ?? readCookie('XSRF-TOKEN');
     if (token) {
       headers['X-XSRF-TOKEN'] = token;
     }
   }
-  const response = await fetch(`${BASE}/v1${path}`, { method, headers, body, credentials: 'same-origin', signal: options.signal });
+  const response = await fetch(`${BASE}/v1${path}`, { method, headers, body, credentials: 'include', signal: options.signal });
+  csrfToken = response.headers.get('X-XSRF-TOKEN') ?? csrfToken;
   const text = await response.text();
   const payload = text ? JSON.parse(text) : undefined;
   if (!response.ok) {
@@ -85,7 +93,7 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
 }
 
 export async function ensureCsrfToken(): Promise<void> {
-  if (!readCookie('XSRF-TOKEN')) {
+  if (!csrfToken && !readCookie('XSRF-TOKEN')) {
     await api('/auth/session');
   }
 }

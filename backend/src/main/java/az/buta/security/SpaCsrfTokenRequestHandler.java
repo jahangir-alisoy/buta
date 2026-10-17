@@ -18,7 +18,8 @@ public class SpaCsrfTokenRequestHandler implements CsrfTokenRequestHandler {
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response, Supplier<CsrfToken> csrfToken) {
         xor.handle(request, response, csrfToken);
-        csrfToken.get();
+        CsrfToken token = csrfToken.get();
+        response.setHeader(token.getHeaderName(), token.getToken());
     }
 
     @Override

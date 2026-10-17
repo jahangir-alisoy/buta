@@ -10,6 +10,7 @@ import { useToast } from '../../design-system/components/Toast';
 import { useAuth } from '../auth/AuthProvider';
 import { useAppearance } from './useAppearance';
 import type { ThemeChoice } from '../../app/PreferencesProvider';
+import { apiUrl } from '../../shared/api/client';
 import type { Language } from '../../shared/i18n';
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
@@ -117,7 +118,7 @@ function AvatarSection() {
     <section className="card stack">
       <h2 className="section-title">{t('account.avatar')}</h2>
       <div className="row wrap" style={{ gap: 16 }}>
-        {user?.avatarUrl ? <img className="avatar avatar-lg" src={user.avatarUrl} alt="" /> : <span className="avatar avatar-lg">{initials}</span>}
+        {user?.avatarUrl ? <img className="avatar avatar-lg" src={apiUrl(user.avatarUrl)} alt="" /> : <span className="avatar avatar-lg">{initials}</span>}
         <div className="stack" style={{ gap: 8 }}>
           <div className="row wrap">
             <button type="button" className="btn btn-secondary btn-sm" onClick={() => input.current?.click()} disabled={busy}>

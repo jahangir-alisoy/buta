@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Award, ChevronRight, Heart, LogOut, Receipt, Settings, Shield, Store } from 'lucide-react';
+import { apiUrl } from '../../shared/api/client';
 import { useAuth } from '../auth/AuthProvider';
 
 export default function AccountPage() {
@@ -20,7 +21,7 @@ export default function AccountPage() {
   return (
     <div className="container page" style={{ maxWidth: 720 }}>
       <header className="card row" style={{ gap: 16, marginBottom: 24 }}>
-        {user.avatarUrl ? <img className="avatar avatar-lg" src={user.avatarUrl} alt="" /> : <span className="avatar avatar-lg">{initials}</span>}
+        {user.avatarUrl ? <img className="avatar avatar-lg" src={apiUrl(user.avatarUrl)} alt="" /> : <span className="avatar avatar-lg">{initials}</span>}
         <div className="stack" style={{ gap: 4, minWidth: 0 }}>
           <h1 className="section-title">
             {user.firstName} {user.lastName}
