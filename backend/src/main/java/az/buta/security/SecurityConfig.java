@@ -1,0 +1,85 @@
+package az.buta.security;
+
+import az.buta.auth.SessionService;
+import az.buta.common.config.AppProperties;
+import az.buta.common.error.ErrorCode;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfException;
+import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+
+import static az.buta.security.SessionAuthenticationFilter.ACCOUNT_ACTIVE;
+import static az.buta.security.SessionAuthenticationFilter.ACCOUNT_PROFILE_INCOMPLETE;
+
+@Configuration
+@EnableMethodSecurity
+public class SecurityConfig {
+
+    private static final String CONTENT_SECURITY_POLICY = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, SessionService sessionService, SessionCookies cookies,
+                                                   ProblemResponseWriter writer, AppProperties properties) throws Exception {
+        CookieCsrfTokenRepository csrfRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        csrfRepository.setCookiePath("/");
+        csrfRepository.setCookieCustomizer(cookie -> cookie.sameSite("Lax").secure(properties.session().cookieSecure()));
+
+        http
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(csrfRepository)
+                        .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler()))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .formLogin(form -> form.disable())
+                .httpBasic(basic -> basic.disable())
+                .logout(logout -> logout.disable())
+                .requestCache(cache -> cache.disable())
+                .addFilterBefore(new OriginCheckFilter(properties, writer), CsrfFilter.class)
+                .addFilterBefore(new SessionAuthenticationFilter(sessionService, cookies), AnonymousAuthenticationFilter.class)
+                .headers(headers -> headers
+                        .contentSecurityPolicy(csp -> csp.policyDirectives(CONTENT_SECURITY_POLICY))
+                        .referrerPolicy(referrer -> referrer.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+                        .frameOptions(frame -> frame.deny())
+                        .permissionsPolicyHeader(policy -> policy.policy("camera=(), microphone=(), geolocation=()")))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/error").permitAll()
+                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                        .requestMatchers("/api/v1/docs", "/api/v1/docs/**", "/swagger-ui/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/config", "/api/v1/home", "/api/v1/categories",
+                                "/api/v1/partners", "/api/v1/partners/*", "/api/v1/offers", "/api/v1/offers/*",
+                                "/api/v1/recommendations").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/interactions").permitAll()
+                        .requestMatchers("/api/v1/auth/complete-profile").hasAuthority(ACCOUNT_PROFILE_INCOMPLETE)
+                        .requestMatchers("/api/v1/auth/logout", "/api/v1/auth/logout-all").authenticated()
+                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers("/api/v1/dev/**").permitAll()
+                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/**").hasAuthority(ACCOUNT_ACTIVE)
+                        .anyRequest().denyAll())
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, exception) ->
+                                writer.write(request, response, ErrorCode.AUTH_REQUIRED))
+                        .accessDeniedHandler((request, response, exception) ->
+                                writer.write(request, response, accessDeniedCode(exception))));
+        return http.build();
+    }
+
+    private static ErrorCode accessDeniedCode(Exception exception) {
+        if (exception instanceof CsrfException) {
+            return ErrorCode.CSRF_INVALID;
+        }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        boolean incomplete = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(authority -> ACCOUNT_PROFILE_INCOMPLETE.equals(authority.getAuthority()));
+        return incomplete ? ErrorCode.PROFILE_INCOMPLETE : ErrorCode.FORBIDDEN;
+    }
+}

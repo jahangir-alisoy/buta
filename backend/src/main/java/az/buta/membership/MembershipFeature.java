@@ -1,0 +1,5 @@
+package az.buta.membership;
+
+public enum MembershipFeature {
+    LOYALTY_POINTS, LOYALTY_TASKS, TIERS, POINTS_REDEMPTION, PERSONALIZED_RECOMMENDATIONS, EXCLUSIVE_OFFERS
+}
