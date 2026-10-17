@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Search, SlidersHorizontal } from 'lucide-react';
+import { ArrowDownUp, Search, SlidersHorizontal } from 'lucide-react';
 import { catalogApi, type OfferQuery } from '../../shared/api/endpoints';
 import { CardGridSkeleton, EmptyState, ErrorState } from '../../design-system/components/States';
 import { Sheet } from '../../design-system/components/Sheet';
 import { Field, Segmented } from '../../design-system/components/Controls';
+import { SelectMenu } from '../../design-system/components/SelectMenu';
 import { OfferGrid } from './OfferCollection';
 import { track } from './track';
 
@@ -132,16 +133,13 @@ export function OfferBrowser({ title, subtitle, preset = {}, defaultSort = 'RECO
           {t('explore.filters')}
           {activeFilters > 0 && <span className="badge badge-accent">{activeFilters}</span>}
         </button>
-        <label className="row" style={{ gap: 8 }}>
-          <span className="visually-hidden">{t('explore.sort')}</span>
-          <select className="select" value={sort} onChange={(event) => update({ sort: event.target.value })} aria-label={t('explore.sort')}>
-            {SORTS.map((option) => (
-              <option key={option} value={option}>
-                {t(`explore.sortOptions.${option}`)}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SelectMenu
+          label={t('explore.sort')}
+          value={sort}
+          onChange={(value) => update({ sort: value })}
+          icon={<ArrowDownUp size={16} aria-hidden="true" />}
+          options={SORTS.map((option) => ({ value: option, label: t(`explore.sortOptions.${option}`) }))}
+        />
       </div>
       {showCategoryChips && categories.data && (
         <div className="chip-scroller" style={{ marginBottom: 16 }}>

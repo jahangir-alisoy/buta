@@ -365,6 +365,8 @@
 }
 
 .segmented {
+  position: relative;
+  isolation: isolate;
   max-width: 100%;
   display: inline-flex;
   padding: 4px;
@@ -375,9 +377,52 @@
   -webkit-backdrop-filter: var(--lg-blur);
   backdrop-filter: var(--lg-blur);
   gap: 2px;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.segmented-lens {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  z-index: 0;
+  width: var(--lens-w, 0px);
+  transform: translate3d(var(--lens-x, 0px), 0, 0) scale(var(--lens-scale, 1));
+  border-radius: var(--radius-pill);
+  background-color: var(--lg-fill-strong);
+  background-image: var(--lg-sheen);
+  box-shadow: var(--lg-rim), var(--lg-depth);
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform, width;
+}
+
+.segmented.has-selection .segmented-lens,
+.segmented.is-dragging .segmented-lens {
+  opacity: 1;
+}
+
+.segmented.is-ready .segmented-lens {
+  transition: transform 520ms var(--ease-spring), width 360ms var(--ease-out), background-color var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out), opacity var(--dur-base);
+}
+
+.segmented.is-dragging .segmented-lens {
+  --lens-scale: 1.14;
+  background-color: var(--lg-fill);
+  box-shadow: var(--lg-rim), inset 0 0 0 1px var(--lg-border), var(--shadow-2);
+  -webkit-backdrop-filter: saturate(180%) brightness(1.06);
+  backdrop-filter: saturate(180%) brightness(1.06);
+  transition: transform 140ms var(--ease-out), width 240ms var(--ease-out), background-color var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out);
 }
 
 .segmented button {
+  position: relative;
+  z-index: 1;
   min-height: 36px;
   padding: 0 14px;
   border-radius: var(--radius-pill);
@@ -387,34 +432,35 @@
   font-weight: 600;
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: background-color var(--dur-base) var(--ease-out), color var(--dur-fast), box-shadow var(--dur-base) var(--ease-out);
+  transition: background-color var(--dur-base) var(--ease-out), color var(--dur-fast), transform 280ms var(--ease-spring);
   -webkit-tap-highlight-color: transparent;
 }
 
 .segmented button[aria-pressed='true'] {
-  background-color: var(--lg-fill-strong);
-  background-image: var(--lg-sheen);
   color: var(--color-text);
-  box-shadow: var(--lg-rim), var(--lg-depth);
-  animation: lg-pop 380ms var(--ease-out);
+}
+
+.segmented.is-dragging {
+  cursor: grabbing;
+}
+
+.segmented.is-dragging button {
+  cursor: grabbing;
+}
+
+.segmented.is-dragging button[aria-pressed='true']:not(.is-under-lens) {
+  color: var(--color-text-secondary);
+}
+
+.segmented button.is-under-lens {
+  color: var(--color-text);
+  transform: scale(1.08);
 }
 
 @media (hover: hover) {
-  .segmented button[aria-pressed='false']:hover {
+  .segmented:not(.is-dragging) button[aria-pressed='false']:hover {
     color: var(--color-text);
     background-color: var(--lg-fill);
-  }
-}
-
-@keyframes lg-pop {
-  0% {
-    transform: scale(0.92);
-  }
-  55% {
-    transform: scale(1.04);
-  }
-  100% {
-    transform: scale(1);
   }
 }
 
@@ -770,4 +816,141 @@ table.table {
 
 .kv {
   align-items: baseline;
+}
+
+.select-menu {
+  position: relative;
+  min-width: 0;
+  width: 100%;
+}
+
+.select-menu-trigger {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 14px 0 16px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--lg-border);
+  background-color: var(--lg-fill);
+  background-image: var(--lg-sheen);
+  box-shadow: var(--lg-rim), var(--lg-depth);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+  color: var(--color-text);
+  font-size: var(--text-small);
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background-color var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-spring),
+    box-shadow var(--dur-base) var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.select-menu-trigger > svg {
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 759px) {
+  .select-menu-trigger > svg:first-child {
+    display: none;
+  }
+}
+
+.select-menu-value {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.select-menu-chevron {
+  transition: transform 300ms var(--ease-spring);
+}
+
+.select-menu.is-open .select-menu-chevron {
+  transform: rotate(180deg);
+}
+
+.select-menu.is-open .select-menu-trigger {
+  background-color: var(--lg-fill-strong);
+}
+
+.select-menu-trigger:active {
+  transform: scale(0.98);
+}
+
+@media (hover: hover) {
+  .select-menu-trigger:hover {
+    background-color: var(--lg-fill-strong);
+    transform: translateY(-1px);
+  }
+}
+
+.select-menu-list {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  min-width: 100%;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 32px));
+  max-height: min(360px, 60vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border-radius: 20px;
+  border: 1px solid var(--lg-border);
+  background-color: var(--color-bg-solid);
+  background-image: var(--lg-sheen);
+  box-shadow: var(--lg-rim), var(--shadow-3);
+  transform-origin: top right;
+  animation: menu-in 220ms var(--ease-out);
+  outline: none;
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.96);
+  }
+}
+
+.select-menu-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  font-size: var(--text-small);
+  font-weight: 500;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background-color var(--dur-fast);
+}
+
+.select-menu-list li > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.select-menu-list li.is-active {
+  background-color: var(--color-bg-sunken);
+}
+
+.select-menu-list li[aria-selected='true'] {
+  font-weight: 600;
+}
+
+.select-menu-list li > svg {
+  flex-shrink: 0;
+  color: var(--color-accent);
 }
