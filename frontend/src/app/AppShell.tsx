@@ -1,16 +1,16 @@
-import { useState, type FormEvent, type ReactNode } from 'react';
-import { Link, NavLink, useNavigate, useNavigation } from 'react-router';
+import type { ReactNode } from 'react';
+import { Link, NavLink, useLocation, useNavigation } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Compass, House, Monitor, Moon, Search, ShoppingBag, Sparkles, Sun, User } from 'lucide-react';
+import { Compass, House, Moon, Search, ShoppingBag, Sparkles, Sun, User } from 'lucide-react';
 import { BrandMark } from '../design-system/components/BrandMark';
-import { catalogApi, commerceApi } from '../shared/api/endpoints';
+import { commerceApi } from '../shared/api/endpoints';
 import { useAuth } from '../features/auth/AuthProvider';
 import { useAppearance } from '../features/account/useAppearance';
 import { apiUrl } from '../shared/api/client';
-import type { ThemeChoice } from './PreferencesProvider';
+import { LiveSearch } from '../features/catalog/LiveSearch';
 
-const THEME_ORDER: ThemeChoice[] = ['SYSTEM', 'LIGHT', 'DARK'];
+const SEARCH_PAGES = ['/explore', '/bundles', '/events', '/categories'];
 
 export function useCartCount(): number {
   const { isActive } = useAuth();
@@ -27,35 +27,14 @@ function UserAvatar() {
   return user.avatarUrl ? <img className="avatar" src={apiUrl(user.avatarUrl)} alt="" /> : <span className="avatar">{initials}</span>;
 }
 
-function HeaderSearch() {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const [value, setValue] = useState('');
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    const query = value.trim();
-    navigate(query ? `/explore?q=${encodeURIComponent(query)}` : '/explore');
-  };
-  return (
-    <form className="header-search" role="search" onSubmit={submit}>
-      <label className="search-bar">
-        <Search size={18} />
-        <span className="visually-hidden">{t('common.search')}</span>
-        <input type="search" value={value} onChange={(event) => setValue(event.target.value)} placeholder={t('home.searchPlaceholder')} />
-      </label>
-    </form>
-  );
-}
-
 function ThemeButton() {
   const { t } = useTranslation();
   const { theme, changeTheme } = useAppearance();
-  const next = THEME_ORDER[(THEME_ORDER.indexOf(theme) + 1) % THEME_ORDER.length];
-  const label = { SYSTEM: t('common.themeSystem'), LIGHT: t('common.themeLight'), DARK: t('common.themeDark') }[theme];
-  const Icon = theme === 'DARK' ? Moon : theme === 'LIGHT' ? Sun : Monitor;
+  const dark = theme === 'DARK' || (theme === 'SYSTEM' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const label = dark ? t('common.themeLight') : t('common.themeDark');
   return (
-    <button type="button" className="icon-btn" onClick={() => changeTheme(next)} aria-label={`${t('common.theme')}: ${label}`} title={label}>
-      <Icon size={20} />
+    <button type="button" className="icon-btn" onClick={() => changeTheme(dark ? 'LIGHT' : 'DARK')} aria-label={`${t('common.theme')}: ${label}`} title={label}>
+      {dark ? <Sun size={20} /> : <Moon size={20} />}
     </button>
   );
 }
@@ -79,7 +58,7 @@ function NavigationProgress() {
 export function AppShell({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   const { user, isActive, isAdmin } = useAuth();
-  const config = useQuery({ queryKey: ['config'], queryFn: catalogApi.config, staleTime: Infinity });
+  const location = useLocation();
   const cartCount = useCartCount();
   const navClass = ({ isActive: active }: { isActive: boolean }) => (active ? 'active' : undefined);
 
@@ -89,7 +68,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         {t('common.skipToContent')}
       </a>
       <NavigationProgress />
-      {config.data?.demoMode && <div className="demo-banner">{t('common.demoBanner')}</div>}
       <header className="app-header glass">
         <div className="container app-header-inner">
           <Link to="/" className="brand" aria-label={t('common.appName')}>
@@ -118,7 +96,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </NavLink>
             )}
           </nav>
-          <HeaderSearch />
+          {!SEARCH_PAGES.some((prefix) => location.pathname.startsWith(prefix)) && <LiveSearch className="header-search" />}
           <div className="header-actions">
             <Link to="/explore" className="icon-btn mobile-only" aria-label={t('common.search')}>
               <Search size={20} />

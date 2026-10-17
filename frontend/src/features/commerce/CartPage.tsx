@@ -13,9 +13,9 @@ function Line({ line, onQuantity, onRemove, busy }: { line: CartLine; onQuantity
   const { t } = useTranslation();
   const offer = line.offer;
   return (
-    <li className="list-row" style={{ alignItems: 'flex-start' }}>
+    <li className="cart-line">
       {offer?.imagePath ? <img className="thumb" src={offer.imagePath} alt="" /> : <span className="thumb" />}
-      <div className="stack" style={{ gap: 6, flex: 1, minWidth: 0 }}>
+      <div className="cart-line-info">
         {offer ? (
           <Link to={`/offers/${offer.slug}`} className="offer-title">
             {offer.title}
@@ -23,9 +23,7 @@ function Line({ line, onQuantity, onRemove, busy }: { line: CartLine; onQuantity
         ) : (
           <span className="offer-title">—</span>
         )}
-        <span className="small muted">
-          {formatMoney(line.unitPrice)} × {line.quantity}
-        </span>
+        <span className="small muted">{formatMoney(line.unitPrice)}</span>
         {line.priceChanged && <span className="caption badge badge-warning">{t('cart.priceChanged', { old: formatMoney(line.unitPriceAtAdd) })}</span>}
         {line.issue && (
           <span className="alert alert-warning small">
@@ -33,17 +31,14 @@ function Line({ line, onQuantity, onRemove, busy }: { line: CartLine; onQuantity
             {t(`cart.issues.${line.issue}`, { defaultValue: line.issue })}
           </span>
         )}
-        <div className="row spread wrap">
-          <Stepper value={line.quantity} max={Math.max(line.quantity, line.maxQuantity)} onChange={onQuantity} disabled={busy} />
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onRemove} disabled={busy}>
-            <Trash2 size={16} aria-hidden="true" />
-            {t('common.remove')}
-          </button>
-        </div>
+        <Stepper value={line.quantity} max={Math.max(line.quantity, line.maxQuantity)} onChange={onQuantity} disabled={busy} />
       </div>
-      <strong className="price-current" style={{ fontSize: 17 }}>
-        {formatMoney(line.lineTotal)}
-      </strong>
+      <div className="cart-line-side">
+        <strong className="cart-line-total">{formatMoney(line.lineTotal)}</strong>
+        <button type="button" className="icon-btn" onClick={onRemove} disabled={busy} aria-label={t('common.remove')} title={t('common.remove')}>
+          <Trash2 size={18} aria-hidden="true" />
+        </button>
+      </div>
     </li>
   );
 }

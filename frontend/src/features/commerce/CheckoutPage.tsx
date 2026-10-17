@@ -9,6 +9,7 @@ import { formatMoney } from '../../shared/format';
 import { ErrorState, errorMessage } from '../../design-system/components/States';
 import { PageLoader } from '../../app/PageLoader';
 import { useAuth } from '../auth/AuthProvider';
+import { EmailVerification } from '../auth/EmailVerification';
 
 function normalizePoints(value: number, quote: Quote | undefined): number {
   if (!quote || !quote.points.allowed || !Number.isFinite(value) || value <= 0) {
@@ -76,6 +77,7 @@ export default function CheckoutPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [requested, setRequested] = useState(0);
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
   const [placing, setPlacing] = useState(false);
@@ -173,11 +175,14 @@ export default function CheckoutPage() {
               {error}
             </p>
           )}
+          {user && !user.emailVerified ? (
+            <EmailVerification />
+          ) : (
           <button type="button" className="btn btn-primary btn-lg btn-block" onClick={place} disabled={placing || quote.isFetching}>
             <Lock size={18} aria-hidden="true" />
             {placing ? t('checkout.placing') : t('checkout.placeOrder')}
           </button>
-          {data.paymentMode === 'SANDBOX' && <span className="badge badge-soft" style={{ alignSelf: 'center' }}>{t('common.sandbox')}</span>}
+          )}
         </aside>
       </div>
     </div>

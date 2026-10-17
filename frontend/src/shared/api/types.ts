@@ -170,6 +170,7 @@ export interface CurrentUser {
   personalizationEnabled: boolean;
   personalizationDecided: boolean;
   referralCode: string;
+  emailVerified: boolean;
 }
 
 export interface SessionInfo {

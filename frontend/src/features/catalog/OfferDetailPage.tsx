@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -11,7 +11,6 @@ import { ErrorState, EmptyState } from '../../design-system/components/States';
 import { Stepper } from '../../design-system/components/Controls';
 import { CategoryIcon } from '../../design-system/components/CategoryIcon';
 import { PageLoader } from '../../app/PageLoader';
-import { AvailabilityBadge } from './OfferCard';
 import { FavoriteButton } from './FavoriteButton';
 import { RecommendedOffers } from './OfferCollection';
 import { useAddToCart } from './useAddToCart';
@@ -83,71 +82,105 @@ function ComponentItem({ component }: { component: OfferComponent }) {
   );
 }
 
-function PricePanel({ detail, quantity, setQuantity, onAdd, pending }: { detail: OfferDetail; quantity: number; setQuantity: (value: number) => void; onAdd: () => void; pending: boolean }) {
+interface PricePanelProps {
+  detail: OfferDetail;
+  quantity: number;
+  setQuantity: (value: number) => void;
+  onAdd: () => void;
+  pending: boolean;
+  onPurchaseVisible: (visible: boolean) => void;
+}
+
+function PricePanel({ detail, quantity, setQuantity, onAdd, pending, onPurchaseVisible }: PricePanelProps) {
+  const purchaseRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const element = purchaseRef.current;
+    if (!element) {
+      return;
+    }
+    const observer = new IntersectionObserver(([entry]) => onPurchaseVisible(entry.isIntersecting || entry.boundingClientRect.top > 0));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [onPurchaseVisible]);
+
   const { t } = useTranslation();
   const offer = detail.offer;
   const maxQuantity = Math.max(1, Math.min(detail.maxPerOrder, offer.remaining ?? detail.maxPerOrder));
   const hasSaving = Number(offer.savings.amount) > 0;
+  const availability =
+    offer.availability === 'SOLD_OUT'
+      ? t('offer.soldOut')
+      : offer.availability === 'LOW_STOCK'
+        ? t('offer.lowStock', { count: offer.remaining ?? 0 })
+        : t('offer.available');
   return (
-    <div className="card stack">
+    <div className="card price-panel">
       {offer.offerType === 'BUNDLE' ? (
         <div className="comparison">
           <div className="comparison-cell">
-            <div className="caption muted">{t('offer.separately')}</div>
-            <div className="strike" style={{ fontSize: 20, fontWeight: 700 }}>
-              {formatMoney(offer.referenceRetail)}
-            </div>
+            <span className="comparison-label">{t('offer.separately')}</span>
+            <span className="comparison-value strike">{formatMoney(offer.referenceRetail)}</span>
           </div>
           <div className="comparison-cell is-highlight">
-            <div className="caption muted">{t('offer.bundlePrice')}</div>
-            <div className="price-current">{formatMoney(offer.sellingPrice)}</div>
+            <span className="comparison-label">{t('offer.bundlePrice')}</span>
+            <span className="comparison-value">{formatMoney(offer.sellingPrice)}</span>
           </div>
         </div>
       ) : (
-        <div className="price">
-          <span className="price-current" style={{ fontSize: 30 }}>
-            {formatMoney(offer.sellingPrice)}
-          </span>
+        <div className="price-head">
+          <span className="price-big">{formatMoney(offer.sellingPrice)}</span>
           {hasSaving && <span className="price-reference strike">{formatMoney(offer.referenceRetail)}</span>}
         </div>
       )}
       {hasSaving && (
-        <p className="reason">
-          {t('offer.youSave', { amount: formatMoney(offer.savings) })} ({t('offer.savePercent', { percent: formatPercent(offer.savingsPercent) })})
-        </p>
+        <div className="savings-pill">
+          {t('offer.youSave', { amount: formatMoney(offer.savings) })}
+          <span className="savings-percent">{t('offer.savePercent', { percent: formatPercent(offer.savingsPercent) })}</span>
+        </div>
       )}
-      <div className="row wrap" style={{ gap: 6 }}>
-        <AvailabilityBadge offer={offer} />
-        {offer.plusOnly && <span className="badge badge-plus">{t('offer.plusOnly')}</span>}
-        <span className="badge badge-soft">{t('offer.endsOn', { date: formatDate(offer.endsAt) })}</span>
-      </div>
+      <dl className="kv-list">
+        <div className="kv">
+          <dt>{t('offer.availability')}</dt>
+          <dd className={offer.availability === 'AVAILABLE' ? 'text-success' : 'text-warning'}>{availability}</dd>
+        </div>
+        <div className="kv">
+          <dt>{t('offer.salesEnd')}</dt>
+          <dd>{formatDate(offer.endsAt)}</dd>
+        </div>
+        <div className="kv">
+          <dt>{t('offer.perOrder')}</dt>
+          <dd>{t('offer.upTo', { count: maxQuantity })}</dd>
+        </div>
+      </dl>
+      {offer.plusOnly && <span className="badge badge-plus price-panel-badge">{t('offer.plusOnly')}</span>}
       {offer.pointsPreview ? (
-        <div className="alert alert-info">
+        <div className="points-note">
           <Award size={18} aria-hidden="true" />
           <div>
             <strong>{t('offer.pointsPreview', { points: offer.pointsPreview })}</strong>
-            <p className="caption">{t('offer.pointsTerms')}</p>
+            <p className="caption muted">{t('offer.pointsTerms')}</p>
           </div>
         </div>
       ) : null}
       {offer.purchasable ? (
-        <>
-          <div className="row spread">
-            <span className="small muted">{t('offer.maxPerOrder', { count: maxQuantity })}</span>
+        <div className="purchase-row" ref={purchaseRef}>
+          <div className="quantity-row">
+            <span className="small muted">{t('common.quantity')}</span>
             <Stepper value={quantity} max={maxQuantity} onChange={setQuantity} />
           </div>
           <button type="button" className="btn btn-primary btn-lg btn-block" onClick={onAdd} disabled={pending}>
             <ShoppingBag size={18} aria-hidden="true" />
             {pending ? t('offer.adding') : t('offer.addToCart')}
           </button>
-        </>
+        </div>
       ) : (
         <div className="stack" style={{ gap: 8 }}>
           <button type="button" className="btn btn-secondary btn-lg btn-block" disabled>
             {t(`offer.blocked.${offer.purchaseBlockReason ?? 'NOT_SELLABLE'}`, { defaultValue: t('offer.blocked.NOT_SELLABLE') })}
           </button>
           {offer.purchaseBlockReason === 'PLUS_REQUIRED' && (
-            <p className="small muted">
+            <p className="small muted text-center">
               {t('offer.plusOnlyText')}{' '}
               <Link to="/rewards" className="section-link">
                 {t('home.plusCta')}
@@ -167,6 +200,7 @@ export default function OfferDetailPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
+  const [purchaseVisible, setPurchaseVisible] = useState(true);
   const { add, pending } = useAddToCart();
   const detail = useQuery({ queryKey: ['offer', slug], queryFn: () => catalogApi.offer(slug) });
   const offerId = detail.data?.offer.id;
@@ -221,7 +255,7 @@ export default function OfferDetailPage() {
         {t('common.back')}
       </button>
       <div className="detail-layout">
-        <div className="stack" style={{ gap: 24 }}>
+        <div className="detail-top stack" style={{ gap: 20 }}>
           <div className="detail-media" style={{ position: 'relative' }}>
             {offer.imagePath && <img src={offer.imagePath} alt="" />}
             <div className="offer-fav">
@@ -238,8 +272,12 @@ export default function OfferDetailPage() {
             </div>
             <h1 className="page-title">{offer.title}</h1>
             <p className="muted">{offer.subtitle}</p>
-            {offer.partners.some((partner) => partner.demo) && <p className="caption tertiary">{t('common.demoPartner')}</p>}
           </header>
+        </div>
+        <aside className="detail-aside">
+          <PricePanel detail={data} quantity={quantity} setQuantity={setQuantity} onAdd={onAdd} pending={pending} onPurchaseVisible={setPurchaseVisible} />
+        </aside>
+        <div className="detail-rest stack" style={{ gap: 24 }}>
           <section className="stack" style={{ gap: 8 }}>
             <h2 className="section-title">{t('offer.description')}</h2>
             <p className="muted" style={{ whiteSpace: 'pre-line' }}>
@@ -255,9 +293,6 @@ export default function OfferDetailPage() {
             </ul>
           </section>
         </div>
-        <aside className="detail-aside">
-          <PricePanel detail={data} quantity={quantity} setQuantity={setQuantity} onAdd={onAdd} pending={pending} />
-        </aside>
       </div>
       {similar.data && similar.data.items.length > 0 && (
         <section className="section">
@@ -267,7 +302,7 @@ export default function OfferDetailPage() {
           <RecommendedOffers data={similar.data} layout="rail" />
         </section>
       )}
-      {offer.purchasable && (
+      {offer.purchasable && !purchaseVisible && (
         <div className="sticky-action glass">
           <div className="price" style={{ flex: 1 }}>
             <span className="price-current">{formatMoney(offer.sellingPrice)}</span>

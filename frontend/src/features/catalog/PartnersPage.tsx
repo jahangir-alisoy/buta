@@ -32,7 +32,6 @@ export default function PartnersPage() {
                   {partner.city} · {t('partners.offers', { count: partner.offerCount })}
                 </span>
                 <p className="small muted offer-subtitle">{partner.description}</p>
-                {partner.demo && <span className="caption tertiary">{t('common.demoPartner')}</span>}
               </div>
             </Link>
           ))}

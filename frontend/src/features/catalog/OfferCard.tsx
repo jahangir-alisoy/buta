@@ -45,14 +45,13 @@ export function OfferCard({ offer, reason, recommendationRequestId, onOpen }: Of
         <div className="offer-meta">
           <CategoryIcon iconKey={offer.category.iconKey} size={14} />
           <span>{offer.category.name}</span>
-          <span aria-hidden="true">·</span>
-          <span>{offer.partners.map((partner) => partner.name).join(' + ')}</span>
         </div>
         <h3 className="offer-title">
           <Link to={recommendationRequestId ? `/offers/${offer.slug}?rec=${recommendationRequestId}` : `/offers/${offer.slug}`} onClick={onOpen}>
             {offer.title}
           </Link>
         </h3>
+        <p className="offer-partners">{offer.partners.map((partner) => partner.name).join(' + ')}</p>
         <p className="offer-subtitle">{offer.subtitle}</p>
         {offer.eventStartsAt && (
           <span className="offer-meta">

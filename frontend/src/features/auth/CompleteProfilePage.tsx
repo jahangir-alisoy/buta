@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -13,8 +13,7 @@ import { useToast } from '../../design-system/components/Toast';
 import { PageLoader } from '../../app/PageLoader';
 import { useAuth } from './AuthProvider';
 import { resumePendingAction } from './resumePendingAction';
-
-const USERNAME_PATTERN = /^[a-z][a-z0-9._]{2,29}$/;
+import { USERNAME_PATTERN, useUsernameAvailability } from './useUsernameAvailability';
 
 function fieldError(errors: FieldError[], field: string): string | undefined {
   return errors.find((error) => error.field === field)?.message;
@@ -32,24 +31,8 @@ export default function CompleteProfilePage() {
   const [errors, setErrors] = useState<FieldError[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [availability, setAvailability] = useState<'idle' | 'available' | 'taken'>('idle');
+  const availability = useUsernameAvailability(form.username);
 
-  useEffect(() => {
-    const username = form.username.trim().toLowerCase();
-    if (!USERNAME_PATTERN.test(username)) {
-      setAvailability('idle');
-      return;
-    }
-    const timer = window.setTimeout(async () => {
-      try {
-        const result = await authApi.usernameAvailability(username);
-        setAvailability(result.available ? 'available' : 'taken');
-      } catch {
-        setAvailability('idle');
-      }
-    }, 400);
-    return () => window.clearTimeout(timer);
-  }, [form.username]);
 
   if (loading) {
     return <PageLoader />;

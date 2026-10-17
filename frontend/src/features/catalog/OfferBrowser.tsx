@@ -86,7 +86,7 @@ export function OfferBrowser({ title, subtitle, preset = {}, defaultSort = 'RECO
       if (value.length >= 2) {
         track({ type: 'SEARCH', query: value });
       }
-    }, 350);
+    }, 250);
     return () => window.clearTimeout(timer);
   });
 

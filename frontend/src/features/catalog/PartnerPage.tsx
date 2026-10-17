@@ -61,7 +61,6 @@ export default function PartnerPage() {
                 </a>
               )}
             </div>
-            {data.demo && <span className="caption tertiary">{t('common.demoPartner')}</span>}
           </div>
         </div>
       </header>

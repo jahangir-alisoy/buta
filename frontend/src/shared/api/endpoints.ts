@@ -71,6 +71,9 @@ export const authApi = {
   session: () => api<SessionInfo>('/auth/session'),
   requestCode: (email: string) => api<{ resendAfterSeconds: number }>('/auth/otp/request', { method: 'POST', body: { email } }),
   verify: (email: string, code: string) => api<SignInResponse>('/auth/otp/verify', { method: 'POST', body: { email, code } }),
+  register: (body: { email: string; firstName: string; lastName: string; username: string; referralCode?: string }) =>
+    api<SignInResponse>('/auth/register', { method: 'POST', body }),
+  guest: (kind: 'CUSTOMER' | 'ADMIN') => api<SignInResponse>('/auth/guest', { method: 'POST', body: { kind } }),
   completeProfile: (body: { firstName: string; lastName: string; username: string; referralCode?: string }) =>
     api<CurrentUser>('/auth/complete-profile', { method: 'POST', body }),
   usernameAvailability: (username: string) =>

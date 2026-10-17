@@ -54,9 +54,10 @@ public class AdminController {
     private final OrderQueryService orders;
     private final RefundService refunds;
     private final RedemptionService redemptions;
+    private final GuestPrivacy privacy;
 
     public AdminController(AdminUserService users, AdminLoyaltyService loyalty, AdminInsightsService insights, BusinessSettingsService settings,
-                           OrderQueryService orders, RefundService refunds, RedemptionService redemptions) {
+                           OrderQueryService orders, RefundService refunds, RedemptionService redemptions, GuestPrivacy privacy) {
         this.users = users;
         this.loyalty = loyalty;
         this.insights = insights;
@@ -64,18 +65,20 @@ public class AdminController {
         this.orders = orders;
         this.refunds = refunds;
         this.redemptions = redemptions;
+        this.privacy = privacy;
     }
 
     @GetMapping("/users")
-    public PageResponse<AdminDtos.UserView> users(@RequestParam(required = false) @Size(max = 100) String query,
+    public PageResponse<AdminDtos.UserView> users(@AuthenticationPrincipal AuthenticatedUser admin,
+                                                  @RequestParam(required = false) @Size(max = 100) String query,
                                                   @RequestParam(defaultValue = "0") @Min(0) int page,
                                                   @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
-        return users.search(query, page, size);
+        return privacy.users(admin, users.search(query, page, size));
     }
 
     @GetMapping("/users/{id}")
-    public AdminDtos.UserView user(@PathVariable UUID id) {
-        return users.get(id);
+    public AdminDtos.UserView user(@AuthenticationPrincipal AuthenticatedUser admin, @PathVariable UUID id) {
+        return privacy.user(admin, users.get(id));
     }
 
     @PostMapping("/users/{id}/membership")
@@ -142,8 +145,8 @@ public class AdminController {
     }
 
     @GetMapping("/referrals")
-    public List<AdminDtos.ReferralView> referrals() {
-        return loyalty.referralsUnderReview();
+    public List<AdminDtos.ReferralView> referrals(@AuthenticationPrincipal AuthenticatedUser admin) {
+        return privacy.referrals(admin, loyalty.referralsUnderReview());
     }
 
     @PostMapping("/referrals/{id}/approve")

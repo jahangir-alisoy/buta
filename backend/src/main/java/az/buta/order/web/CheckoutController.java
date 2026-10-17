@@ -1,6 +1,8 @@
 package az.buta.order.web;
 
 import az.buta.catalog.ViewerResolver;
+import az.buta.common.error.ApiException;
+import az.buta.common.error.ErrorCode;
 import az.buta.order.CheckoutService;
 import az.buta.order.OrderLifecycleService;
 import az.buta.order.dto.CheckoutRequest;
@@ -45,6 +47,9 @@ public class CheckoutController {
     @ResponseStatus(HttpStatus.CREATED)
     public OrderDto place(@AuthenticationPrincipal AuthenticatedUser user, @RequestHeader("Idempotency-Key") String idempotencyKey,
                           @Valid @RequestBody CheckoutRequest request) {
+        if (!user.emailVerified()) {
+            throw ApiException.of(ErrorCode.EMAIL_NOT_VERIFIED);
+        }
         return checkout.place(viewers.resolve(user), request.pointsToRedeem(), idempotencyKey);
     }
 

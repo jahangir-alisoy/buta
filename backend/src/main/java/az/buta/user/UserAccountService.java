@@ -79,7 +79,8 @@ public class UserAccountService {
                 user.status().name(), user.roleSet().stream().map(Enum::name).collect(Collectors.toSet()),
                 user.avatarFileId() == null ? null : "/api/v1/me/avatar?v=" + user.avatarFileId(),
                 membership.current(userId).plan().name(), prefs.locale(), prefs.theme().name(),
-                prefs.personalizationEnabled(), prefs.personalizationDecidedAt() != null, user.referralCode());
+                prefs.personalizationEnabled(), prefs.personalizationDecidedAt() != null, user.referralCode(),
+                user.isEmailVerified());
     }
 
     @Transactional

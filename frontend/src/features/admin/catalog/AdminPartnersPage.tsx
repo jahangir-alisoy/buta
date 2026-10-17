@@ -170,7 +170,6 @@ export default function AdminPartnersPage() {
                 <tr key={partner.id}>
                   <td>
                     {partner.name}
-                    {partner.demo && <span className="badge badge-soft" style={{ marginLeft: 6 }}>demo</span>}
                     <div className="caption tertiary">{partner.slug}</div>
                   </td>
                   <td>{partner.city}</td>
