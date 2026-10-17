@@ -14,6 +14,7 @@ import { PageLoader } from '../../app/PageLoader';
 import { useAuth } from './AuthProvider';
 import { resumePendingAction } from './resumePendingAction';
 import { USERNAME_PATTERN, useUsernameAvailability } from './useUsernameAvailability';
+import { AvailabilityMark } from './AvailabilityMark';
 
 function fieldError(errors: FieldError[], field: string): string | undefined {
   return errors.find((error) => error.field === field)?.message;
@@ -70,7 +71,6 @@ export default function CompleteProfilePage() {
   };
 
   const set = (key: keyof typeof form) => (value: string) => setForm((current) => ({ ...current, [key]: value }));
-  const usernameHint = availability === 'available' ? t('auth.usernameAvailable') : undefined;
 
   return (
     <div className="container auth-shell">
@@ -90,19 +90,22 @@ export default function CompleteProfilePage() {
         <Field id="lastName" label={t('auth.lastName')} error={fieldError(errors, 'lastName')}>
           <input id="lastName" className="input" autoComplete="family-name" maxLength={50} required value={form.lastName} onChange={(event) => set('lastName')(event.target.value)} />
         </Field>
-        <Field id="username" label={t('auth.username')} hint={usernameHint} error={fieldError(errors, 'username') ?? (availability === 'taken' ? t('auth.usernameTaken') : undefined)}>
-          <input
-            id="username"
-            className="input"
-            autoComplete="username"
-            autoCapitalize="none"
-            spellCheck={false}
-            maxLength={30}
-            required
-            value={form.username}
-            onChange={(event) => set('username')(event.target.value.toLowerCase())}
-            aria-invalid={availability === 'taken'}
-          />
+        <Field id="username" label={t('auth.username')} error={fieldError(errors, 'username') ?? (availability === 'taken' ? t('auth.usernameTaken') : undefined)}>
+          <div className="input-with-mark">
+            <input
+              id="username"
+              className="input"
+              autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
+              maxLength={30}
+              required
+              value={form.username}
+              onChange={(event) => set('username')(event.target.value.toLowerCase())}
+              aria-invalid={availability === 'taken'}
+            />
+            <AvailabilityMark availability={availability} />
+          </div>
         </Field>
         <Field id="referralCode" label={`${t('auth.referralCode')} (${t('common.optional')})`} error={fieldError(errors, 'referralCode')}>
           <input

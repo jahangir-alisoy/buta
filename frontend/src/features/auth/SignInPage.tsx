@@ -16,6 +16,7 @@ import { useAuth } from './AuthProvider';
 import { resumePendingAction } from './resumePendingAction';
 import { USERNAME_PATTERN, useUsernameAvailability } from './useUsernameAvailability';
 import { ConsentCheckbox, ConsentNote } from './LegalConsent';
+import { AvailabilityMark } from './AvailabilityMark';
 
 type Tab = 'signIn' | 'register';
 
@@ -56,7 +57,7 @@ export default function SignInPage() {
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
-  const [profile, setProfile] = useState({ firstName: '', lastName: '', username: '', referralCode: rememberedReferral() });
+  const [profile, setProfile] = useState({ firstName: '', lastName: '', username: '', referralCode: rememberedReferral(params.get('ref')) });
   const [errors, setErrors] = useState<FieldError[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -238,22 +239,21 @@ export default function SignInPage() {
                       <input id="lastName" className="input" autoComplete="family-name" maxLength={50} value={profile.lastName} onChange={(event) => setField('lastName')(event.target.value)} />
                     </Field>
                   </div>
-                  <Field
-                    id="username"
-                    label={t('auth.username')}
-                    hint={availability === 'available' ? t('auth.usernameAvailable') : undefined}
-                    error={fieldError(errors, 'username') ?? (availability === 'taken' ? t('auth.usernameTaken') : undefined)}
-                  >
-                    <input
-                      id="username"
-                      className="input"
-                      autoComplete="username"
-                      autoCapitalize="none"
-                      spellCheck={false}
-                      maxLength={30}
-                      value={profile.username}
-                      onChange={(event) => setField('username')(event.target.value.toLowerCase())}
-                    />
+                  <Field id="username" label={t('auth.username')} error={fieldError(errors, 'username') ?? (availability === 'taken' ? t('auth.usernameTaken') : undefined)}>
+                    <div className="input-with-mark">
+                      <input
+                        id="username"
+                        className="input"
+                        autoComplete="username"
+                        autoCapitalize="none"
+                        spellCheck={false}
+                        maxLength={30}
+                        value={profile.username}
+                        onChange={(event) => setField('username')(event.target.value.toLowerCase())}
+                        aria-invalid={availability === 'taken'}
+                      />
+                      <AvailabilityMark availability={availability} />
+                    </div>
                   </Field>
                   <Field id="referralCode" label={`${t('auth.referralCode')} (${t('common.optional')})`} error={fieldError(errors, 'referralCode')}>
                     <input
