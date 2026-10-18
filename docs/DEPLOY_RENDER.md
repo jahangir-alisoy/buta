@@ -6,9 +6,9 @@ You will create **three separate resources** in Render, all in the **same region
 |---|---|---|---|
 | 1 | PostgreSQL | `buta-db` | The database |
 | 2 | Web Service (Docker) | `buta-api` | Spring Boot backend (`backend/Dockerfile`) |
-| 3 | Web Service (Docker) | `buta-web` | React app served by Nginx (`frontend/Dockerfile`), which forwards `/api/*` to the backend |
+| 3 | Static Site | `buta-web` | The React app (`frontend`, built with `npm run build`) |
 
-Visitors only open `buta-web`. Because the browser talks to one address, sign-in cookies work in every browser, including Safari, and no CORS setup is needed.
+Visitors only open `buta-web`; the app calls `buta-api` for data.
 
 > **How API calls flow.** The frontend is a Render **Static Site**. The browser calls the backend directly at `https://<backend>.onrender.com/api/v1/...`. The backend allows this through CORS for the address in `APP_PUBLIC_BASE_URL`, and sends its cookies with `SameSite=None` (`APP_COOKIE_SAME_SITE=None`).
 >
@@ -112,7 +112,7 @@ You don't need to create any tables; the backend creates the schema on first sta
 
 Notes:
 
-- `APP_DEMO_MODE=true` is required for now: payments are a sandbox (no real money), and the app labels itself as a demo. The backend refuses to start in `prod` without it.
+- `APP_DEMO_MODE=true` is required while payments are the sandbox (no real money), so the app labels itself as a demo; the backend refuses to start in `prod` with sandbox payments and without it. To accept test card payments through Stripe instead, see [Step 6](#step-6--stripe-payments-optional).
 - Leave `PORT` unset; Render provides it and the app picks it up.
 
 ---
@@ -156,6 +156,29 @@ Notes:
 5. In DevTools → Network, `/api/v1/...` requests go to the backend address and return **JSON**, with no CORS errors in the Console.
 
 Done. Every push to the deployed branch redeploys the changed services automatically.
+
+---
+
+## Step 6 — Stripe payments (optional)
+
+By default checkout uses the built-in sandbox (a "Pay" / "Cancel payment" step, no real money). To let testers pay on Stripe's real payment page with test cards:
+
+1. In the Stripe Dashboard (test mode) open **Developers → API keys** and copy the **Secret key** (`sk_test_…`).
+2. Open **Developers → Webhooks → Add endpoint**:
+   - **Endpoint URL:** `https://<your-backend>.onrender.com/api/v1/payments/stripe/webhook`
+   - **Events:** `checkout.session.completed` and `checkout.session.async_payment_succeeded`
+   - Create it, then reveal and copy the **Signing secret** (`whsec_…`).
+3. On `buta-api` → **Environment**, add:
+
+   | Key | Value |
+   |---|---|
+   | `APP_PAYMENT_PROVIDER` | `stripe` |
+   | `STRIPE_SECRET_KEY` | the secret key from step 1 |
+   | `STRIPE_WEBHOOK_SECRET` | the signing secret from step 2 |
+
+4. Save; Render redeploys the backend. The backend refuses to start if one of the two Stripe values is missing.
+
+How it works: on the payment step (and when buying Plus under **Rewards**) the customer is sent to Stripe Checkout, pays in AZN, and returns to the site, which confirms the payment; the webhook confirms it as well if the customer closes the tab. Use [Stripe test cards](https://docs.stripe.com/testing) while the keys are test keys. Refunds (by customers or in the admin console) are sent to Stripe. Keep the keys only in Render's environment, never in the repository.
 
 ---
 
@@ -217,6 +240,8 @@ The setup above works on any plan. Things to know:
 | CORS error in the Console | `APP_PUBLIC_BASE_URL` on the backend must exactly equal the frontend address (e.g. `https://naxish.onrender.com`, no trailing slash). |
 | Requests go to the frontend address instead of the backend | `VITE_API_URL` was missing at build time. Set it and run **Clear build cache & deploy**. |
 | Signed in, but after a refresh you are signed out again | The browser blocks cross-site cookies (Safari, or third-party cookies blocked). Use Chrome/Firefox with default settings, or a shared custom domain. |
+| `buta-api` log shows `STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET are required for Stripe payments` | `APP_PAYMENT_PROVIDER=stripe` is set but a Stripe value is missing. Add both (see [Step 6](#step-6--stripe-payments-optional)) or set `APP_PAYMENT_PROVIDER=sandbox`. |
+| Paid on Stripe but the order still waits for payment | Check that the webhook endpoint URL points to `buta-api` and that `STRIPE_WEBHOOK_SECRET` is the signing secret of that endpoint. Returning to the site from Stripe also confirms the payment. |
 | I signed in but there is no **Admin** link | The backend has not been redeployed with migration `010-owner-accounts.sql` yet, or the email is not an admin. Redeploy `buta-api`, then sign out and sign in again. |
 | The first visit takes a long time | Free services are waking up from sleep (see [Plans and limits](#plans-and-limits)). |
 
@@ -234,7 +259,9 @@ The setup above works on any plan. Things to know:
 | `APP_ADMIN_EMAILS` | yes | — | Who becomes an admin on sign-in |
 | `APP_OTP_PEPPER`, `APP_IP_HASH_SECRET` | yes | — | Random secrets, at least 32 characters |
 | `MAIL_USERNAME`, `MAIL_APP_PASSWORD` | yes | — | Gmail address and app password |
-| `APP_DEMO_MODE` | yes | `false` | Must be `true` while payments are a sandbox |
+| `APP_DEMO_MODE` | yes | `false` | Must be `true` while payments are the sandbox |
+| `APP_PAYMENT_PROVIDER` | no | `sandbox` | `stripe` enables Stripe Checkout |
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | with Stripe | — | Stripe secret key and webhook signing secret |
 | `APP_LIQUIBASE_CONTEXTS` | no | `default` | `default,demo` loads demo content |
 | `APP_OTP_MAX_PER_IP_HOUR`, `APP_OTP_MAX_VERIFY_PER_IP` | no | `20`, `30` | Per-IP sign-in limits |
 | `DB_SSL_MODE` | no | `prefer` | PostgreSQL SSL mode |

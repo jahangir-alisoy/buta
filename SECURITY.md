@@ -8,7 +8,7 @@ Please do not open a public issue. Email the maintainers with steps to reproduce
 
 ## Threat model
 
-**Assets:** accounts and sessions, OTP codes, orders and voucher codes, loyalty points, partner cost data (commercially sensitive), personal data.
+**Assets:** accounts and sessions, OTP codes, orders and voucher codes, payments and Plus purchases, loyalty points, partner cost data (commercially sensitive), personal data.
 
 | Threat | Mitigation in this codebase |
 |---|---|
@@ -16,11 +16,14 @@ Please do not open a public issue. Email the maintainers with steps to reproduce
 | OTP replay | Single-use atomic consumption; a new request supersedes older challenges |
 | Account enumeration | One sign-in/sign-up flow with identical responses and limits for known and unknown emails |
 | Session theft via XSS | Opaque session token in an `HttpOnly`, `SameSite=Lax` cookie (`__Host-` + `Secure` in production); nothing sensitive in `localStorage`; strict CSP; React escaping; no `dangerouslySetInnerHTML` |
-| CSRF | `SameSite=Lax` + CSRF token (`XSRF-TOKEN` cookie / `X-XSRF-TOKEN` header) + Origin check on unsafe methods |
+| CSRF | `SameSite=Lax` + CSRF token (`XSRF-TOKEN` cookie / `X-XSRF-TOKEN` header) + Origin check on unsafe methods; the only exemption is the Stripe webhook, which is authenticated by its signature instead |
 | Session fixation / stale sessions | New token on every sign-in; tokens stored as SHA-256 hashes; idle and absolute timeouts (shorter for admins); "sign out everywhere" and admin session revocation |
 | IDOR | Every user-owned query is scoped by the authenticated user; other users' resources return 404; UUID identifiers |
 | Mass assignment / privilege escalation | Explicit request DTOs, unknown JSON fields rejected; roles and membership read from the database; admin routes protected by URL rules and method security |
 | Price, discount, points or status tampering | All prices, savings, margins, points and statuses are computed on the server; client values are ignored |
+| Card data exposure | Card payments happen only on Stripe's hosted Checkout page; card details never reach our servers |
+| Forged or replayed payment confirmations | Stripe webhooks are accepted only with a valid `Stripe-Signature` (`STRIPE_WEBHOOK_SECRET`); the return-page confirmation re-reads the Checkout session from Stripe and checks it belongs to the signed-in user; only sessions with `payment_status = paid` complete an order or Plus purchase; completion is idempotent (the Stripe payment reference is stored and a Plus purchase reference is unique); amounts are computed on the server |
+| Paying for an expired or cancelled order | A Stripe payment that completes when the order is no longer awaiting payment is refunded automatically in full |
 | Overselling and races | Conditional atomic inventory updates with CHECK constraints and deterministic lock order; idempotent checkout (Idempotency-Key + request fingerprint) |
 | Points double spend / duplicate rewards | Account row locks, append-only ledger with unique idempotency keys, recompute-based task evaluation, reversals on refund |
 | Referral and task abuse | Self-referral rejection, network (IP-hash) checks and monthly caps → manual review queue, minimum order amounts |
@@ -29,7 +32,7 @@ Please do not open a public issue. Email the maintainers with steps to reproduce
 | Open redirect | `returnTo` accepted only as a relative path (no `//`, backslash or scheme) |
 | Spoofed `X-Forwarded-For` | Forwarded headers trusted only from configured internal proxies (`APP_TRUSTED_PROXIES`); per-email limits do not depend on IP |
 | Information leakage | Generic errors with a request id, no stack traces or exception messages; partner costs visible to admins only; OTPs and tokens never logged |
-| Secret exposure | Secrets only from environment variables; `.env` is git-ignored; `.env.example` contains local placeholders only |
+| Secret exposure | Secrets (including `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`) only from environment variables; `.env` is git-ignored; `.env.example` contains local placeholders only |
 | Clickjacking | `frame-ancestors 'none'` and `X-Frame-Options: DENY` |
 | Development features in production | Startup guards (below) |
 
@@ -38,12 +41,17 @@ Please do not open a public issue. Email the maintainers with steps to reproduce
 - **Nginx (SPA):** `Content-Security-Policy` (`default-src 'self'`, `script-src 'self'`, `frame-ancestors 'none'`, `object-src 'none'`), `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`, `Cross-Origin-Opener-Policy: same-origin`. `index.html` is never cached; hashed assets are immutable.
 - **Spring Security (API):** CSP, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, `Cache-Control: no-store`, HSTS on secure requests.
 
-## Startup guards (`prod` profile)
+## Startup guards
 
 The backend refuses to start when:
 
+- the dev mailbox is enabled outside the `dev` profile;
+- `APP_PAYMENT_PROVIDER=stripe` but `STRIPE_SECRET_KEY` or `STRIPE_WEBHOOK_SECRET` is missing (any profile).
+
+With the `prod` profile it also refuses to start when:
+
 - `APP_OTP_PEPPER` or `APP_IP_HASH_SECRET` is missing, shorter than 32 bytes, or still a `dev-only` value;
-- the dev mailbox or the in-memory email provider is enabled;
+- the in-memory email provider is enabled, or `MAIL_USERNAME` / `MAIL_APP_PASSWORD` is missing;
 - sandbox payments are active while `APP_DEMO_MODE` is not `true`;
 - the session cookie is not `Secure`.
 
@@ -66,6 +74,7 @@ The backend refuses to start when:
 - [ ] Logs verified free of OTPs, tokens, cookies and raw emails; retention configured
 - [ ] Rate limits tuned; distributed rate limiting before running more than one backend instance
 - [ ] Monitoring and alerting (health, error rate, latency, failed sign-ins, OTP lockouts)
-- [ ] Real payment provider via a hosted payment page with signed webhooks (no card data on our servers)
+- [ ] Stripe: live keys and the live webhook signing secret stored only in Render; test keys rotated if they were ever shared; webhook endpoint `POST /api/v1/payments/stripe/webhook` registered for `checkout.session.completed` and `checkout.session.async_payment_succeeded`
+- [ ] Partner agreements signed (and permission to use partner names and logos) before the `demo` partners are presented as real partners
 - [ ] Terms, privacy policy, refund policy and partner agreements reviewed by legal counsel
 - [ ] Penetration test and accessibility audit before public launch

@@ -1,8 +1,8 @@
-# Buta — tickets, bundles and loyalty
+# Buta (Naxış) — tickets, bundles and loyalty
 
-Buta is an MVP marketplace that sits between cultural and leisure **partners** (cinemas, theatres, museums, festivals, workshops, transport, book shops) and **customers**. The platform negotiates discounted prices, sells single offers and margin-checked **bundles**, issues voucher codes, and rewards repeat visits with a **loyalty programme** (points, tasks, tiers, referrals) and explainable **recommendations**.
+Buta is an MVP marketplace, shown to users under the brand **Naxış**, that sits between cultural and leisure **partners** (cinemas, theatres, museums, festivals, workshops, transport, book shops) and **customers**. The platform negotiates discounted prices, sells single offers and margin-checked **bundles**, issues voucher codes, and rewards repeat visits with a **loyalty programme** (points, tasks, tiers, referrals) and explainable **recommendations**.
 
-> The repository runs in **demo mode** by default: partners, offers and availability are fictional and payments are a **sandbox** (no money moves, no card data is collected).
+> The repository runs in **demo mode** by default: offers, prices and availability are illustrative and payments are a **sandbox** (no money moves, no card data is collected). The demo partners are real Azerbaijani cultural organisations used for illustration only, without partner agreements. Payments can be switched to **Stripe Checkout** (test mode) with `APP_PAYMENT_PROVIDER=stripe`.
 
 The full product and engineering plan lives in [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md). Security notes are in [`SECURITY.md`](SECURITY.md).
 
@@ -43,12 +43,16 @@ The full product and engineering plan lives in [`docs/PROJECT_PLAN.md`](docs/PRO
 Browser ──HTTPS──▶ frontend (Nginx)
                     ├─ serves the SPA (static, immutable assets, SPA fallback)
                     └─ /api/* ──proxy──▶ backend (Spring Boot) ──▶ PostgreSQL
-                                              └─▶ Gmail SMTP (Mailpit locally)
+                                              ├─▶ Gmail SMTP (Mailpit locally)
+                                              └─▶ Stripe API (only with APP_PAYMENT_PROVIDER=stripe)
+Browser ──▶ Stripe Checkout (hosted payment page) ──webhook──▶ backend
 ```
 
 - **Same origin.** The SPA calls `/api/v1/...` on its own origin; Nginx proxies to the backend. Session and CSRF cookies therefore stay first-party (`SameSite=Lax`, `HttpOnly`, `__Host-` prefix in production) and no CORS is needed.
 - **Backend** — modular monolith by business capability: `auth`, `user`, `catalog`, `pricing`, `cart`, `order`, `payment`, `loyalty`, `membership`, `recommendation`, `favorite`, `admin`, `notification`, `security`, `common`. Opaque server-side sessions (SHA-256 hashed tokens), email OTP sign-in, RFC 9457 problem responses with localized messages (`az` default, `en`), Hibernate in `validate` mode, Liquibase-owned schema.
 - **Frontend** — React Router 7 (lazy routes), TanStack Query 5, i18next (`az`/`en`), a small global CSS design system (tokens, light/dark themes, iOS-inspired glass surfaces, safe-area aware layout), lucide icons, and a restrained Three.js hero that is lazy-loaded, paused off-screen and static under `prefers-reduced-motion`.
+- **Mobile** — a bottom tab bar on phones and tablets; on phones (up to 599 px wide) a denser layout shows offers in a two-column grid of compact cards, with tighter spacing and 44 px touch targets, so more offers fit on one screen. Tablet and desktop layouts are unaffected.
+- **Brand** — the Naxış logo lives in `frontend/public/brand/logo.png` (also `favicon.png` and `apple-touch-icon.png`).
 
 ## Quick start with Docker Compose
 
@@ -109,8 +113,8 @@ Suggested walkthrough:
 
 1. Browse the home page, **Explore**, **Bundles** and **Events** without signing in; open a bundle to see the separate-vs-bundle price comparison and what is included.
 2. Press **Add to cart** while signed out — you are sent to sign-in and, after verifying the code, the item is added and you return to the offer.
-3. Check out as `kamran.plus@buta.test`, use points, and complete the **sandbox payment** (success or failure). Vouchers appear on the order page.
-4. Open **Rewards** to see points, tier progress, tasks and the referral code; open **For you** to see recommendations with reasons (personalization asks for consent first).
+3. Check out as `kamran.plus@buta.test`, use points, and complete the payment: with the **sandbox** (default) choose success or failure; with **Stripe** you are sent to Stripe Checkout and pay with a [Stripe test card](https://docs.stripe.com/testing). Vouchers appear on the order page.
+4. Open **Rewards** to see points, tier progress, tasks and the referral code, or buy **Plus** as a Free member (sandbox or Stripe); open **For you** to see recommendations with reasons (personalization asks for consent first).
 5. Sign in as `admin@buta.test` and open **Admin**: create or edit an offer and watch the live **margin preview**, publish/pause offers, adjust inventory, assign Plus, review referrals, refund orders, **redeem a voucher code** (this completes the order and can complete the "night out" task), change business settings with an impact preview, and read the audit log.
 
 ## Configuration
@@ -139,7 +143,9 @@ Business settings (pricing, loyalty, membership, recommendation weights) live in
 
 - Master changelog: `backend/src/main/resources/db/changelog/db.changelog-master.yaml`, with formatted-SQL change sets in `changes/`.
 - `001`–`009`: schema and reference data (context `default`).
+- `010`: owner admin accounts; `011`: email verification; `012`: demo content wording; `013`: paid Plus subscription (4.99 ₼ per month) and membership purchases; `014`: Stripe payments (context `default`).
 - `901`–`904`: demo catalog, users, orders and loyalty data (context `demo`).
+- `905`: replaces the fictional demo partners with real Azerbaijani cultural organisations and adds more of them (context `demo`).
 - Migrations run automatically on startup; Hibernate only validates the schema.
 - Production sets `APP_LIQUIBASE_CONTEXTS` explicitly (`default` for real launches, `default,demo` for the hosted demo).
 
@@ -163,14 +169,16 @@ Follow the step-by-step guide: **[docs/DEPLOY_RENDER.md](docs/DEPLOY_RENDER.md)*
 ## Business rules in short
 
 - **Pricing** — selling price is allocated across bundle components (remainder to the last component); partner cost follows each product's model (wholesale net cost, commission, or negotiated cost); expected payment fee is 2.5 % + 0.20 ₼; loyalty cost is estimated at the highest tier multiplier; offers must keep a contribution margin of at least 1.00 ₼ **and** 5 %, and may never cost more than the reference retail price. Example: a 28.00 ₼ bundle leaves a 1.55 ₼ (5.54 %) margin and can be published.
-- **Checkout** — idempotent order placement, atomic inventory reservation (15-minute TTL), sandbox payment confirmation, one voucher per unit, refunds with restock and points reversal, scheduled expiry of unpaid orders.
-- **Membership** — Free and Plus. Plus is earned automatically at 100 ₼ qualifying spend in 180 days (or assigned by an admin) and unlocks points, tasks, tiers, points redemption, personal recommendations and exclusive offers.
+- **Checkout** — idempotent order placement, atomic inventory reservation (15-minute TTL), payment confirmation (sandbox, or Stripe Checkout confirmed by a signed webhook or on return from Stripe), one voucher per unit, refunds with restock and points reversal (refunded through Stripe when it was used), scheduled expiry of unpaid orders. A Stripe payment that completes after the order expired or was cancelled is refunded automatically.
+- **Membership** — Free and Plus. Plus is earned automatically at 100 ₼ qualifying spend in 180 days, assigned by an admin, or bought as a monthly subscription (4.99 ₼ by default; sandbox or Stripe Checkout), and unlocks points, tasks, tiers, points redemption, personal recommendations and exclusive offers.
 - **Loyalty** — append-only points ledger with idempotency keys; tiers Bronze (0), Silver (100, ×1.10) and Gold (500, ×1.25); tasks for distinct partners, bundles, event attendance, new categories and referrals; referrals from the same network go to manual review.
 - **Recommendations** — rule-based scoring (interest 30, budget 20, value 15, loyalty 15, discovery 10, business 10), minimum relevance, frequency caps, diversity re-ranking and exploration slots; every item carries a human-readable reason. Personalization requires explicit consent and can be reset.
 
 ## Decisions and deviations
 
 - **Liquibase** instead of Flyway, as requested.
+- **Stripe Checkout** (hosted payment page) for real payments in test mode: card data never reaches our servers; the sandbox stays the default.
+- **Real Azerbaijani cultural organisations as demo partners**, at the owner's request, replacing the fictional ones (one fictional partner, Melodia Stream, remains because no verifiable Azerbaijani equivalent was found). Partners keep the `demo` flag and neutral category images instead of their logos.
 - **Opaque server-side sessions** instead of JWTs: instant revocation ("sign out everywhere", admin revoke) and no tokens readable by JavaScript.
 - **Global CSS design system** (tokens + component classes) instead of CSS Modules, and **plain controlled forms** instead of react-hook-form/zod: fewer dependencies for an MVP; the backend remains the source of truth for validation and returns field errors that the forms display.
 - **No automated tests** (backend or frontend) and **no health-check endpoints**, as instructed; quality gates are the Gradle build, strict TypeScript and the production build.
@@ -179,9 +187,9 @@ Follow the step-by-step guide: **[docs/DEPLOY_RENDER.md](docs/DEPLOY_RENDER.md)*
 
 ## Known limitations
 
-- Payments are sandbox only; no partner portal or partner integrations (admins maintain inventory).
+- Payments are a sandbox by default; Stripe is integrated and used with test keys, and live payments need a live Stripe account, live keys and legal review. No partner portal or partner integrations (admins maintain inventory).
 - IP-based rate limiting is in memory, so the backend should run as a single instance until a distributed limiter is added.
 - No self-service data export/account deletion, SMS verification, seat selection or points expiry.
 - Recommendations are rule-based; the A/B plumbing ships with a single variant.
 - Real Safari/iOS behaviour still needs manual verification on devices.
-- Demo content is illustrative; on Render, sign-in requires the Gmail credentials (`MAIL_USERNAME`, `MAIL_APP_PASSWORD`).
+- Demo content is illustrative: partner names and descriptions are real, but there are no partner agreements, and offers, prices and availability are made up. Official partner logos are not included yet. On Render, sign-in requires the Gmail credentials (`MAIL_USERNAME`, `MAIL_APP_PASSWORD`).
