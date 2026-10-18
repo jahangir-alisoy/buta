@@ -16,6 +16,7 @@ import type {
   PartnerDetail,
   PartnerSummary,
   PlusPlan,
+  StripeCheckout,
   Preferences,
   PreferencesUpdate,
   Quote,
@@ -106,6 +107,7 @@ export const accountApi = {
   referral: () => api<ReferralInfo>('/me/referral'),
   plusPlan: () => api<PlusPlan>('/me/plus'),
   buyPlus: () => api<PlusPlan>('/me/plus/purchase', { method: 'POST' }),
+  stripePlusCheckout: () => api<StripeCheckout>('/me/plus/stripe-checkout', { method: 'POST' }),
 };
 
 export const commerceApi = {
@@ -119,6 +121,7 @@ export const commerceApi = {
     api<Order>('/checkout', { method: 'POST', body: { pointsToRedeem }, headers: { 'Idempotency-Key': idempotencyKey } }),
   confirmSandbox: (paymentId: string, outcome: 'SUCCEEDED' | 'FAILED') =>
     api<Order>(`/payments/${paymentId}/sandbox-confirmation`, { method: 'POST', body: { outcome } }),
+  stripeCheckout: (paymentId: string) => api<StripeCheckout>(`/payments/${paymentId}/stripe-checkout`, { method: 'POST' }),
   orders: (page = 0) => api<Page<OrderSummary>>(`/orders${query({ page, size: 20 })}`),
   order: (id: string) => api<Order>(`/orders/${id}`),
   cancel: (id: string) => api<Order>(`/orders/${id}/cancel`, { method: 'POST' }),

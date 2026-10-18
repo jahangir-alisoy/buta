@@ -38,7 +38,10 @@ public record AppProperties(
     public record Mail(String provider, String from, boolean devMailboxEnabled) {
     }
 
-    public record Payment(String provider) {
+    public record Payment(String provider, Stripe stripe) {
+    }
+
+    public record Stripe(String secretKey, String webhookSecret) {
     }
 
     public record Storage(String provider, String localDir, long avatarMaxBytes) {

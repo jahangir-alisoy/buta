@@ -320,6 +320,10 @@ export interface LoyaltySummary {
   tiers: Tier[];
 }
 
+export interface StripeCheckout {
+  url: string;
+}
+
 export interface PlusPlan {
   price: Money;
   periodDays: number;

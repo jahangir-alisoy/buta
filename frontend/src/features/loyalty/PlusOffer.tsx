@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Check, Crown } from 'lucide-react';
-import { accountApi } from '../../shared/api/endpoints';
+import { accountApi, catalogApi } from '../../shared/api/endpoints';
 import { formatDate, formatMoney } from '../../shared/format';
 import { Sheet } from '../../design-system/components/Sheet';
 import { errorMessage } from '../../design-system/components/States';
@@ -17,9 +18,24 @@ export function PlusOffer({ earnHint }: { earnHint?: string }) {
   const toast = useToast();
   const queryClient = useQueryClient();
   const { user, refresh } = useAuth();
-  const plan = useQuery({ queryKey: ['loyalty', 'plus-plan'], queryFn: accountApi.plusPlan });
+  const [params] = useSearchParams();
+  const returnedFromStripe = params.get('plus') === 'success';
+  const config = useQuery({ queryKey: ['config'], queryFn: catalogApi.config, staleTime: Infinity });
+  const plan = useQuery({
+    queryKey: ['loyalty', 'plus-plan'],
+    queryFn: accountApi.plusPlan,
+    refetchInterval: (query) => (returnedFromStripe && query.state.dataUpdateCount < 10 ? 2000 : false),
+  });
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const planCode = plan.data?.plan;
+  const endsAt = plan.data?.endsAt;
+
+  useEffect(() => {
+    if (returnedFromStripe && planCode === 'PLUS') {
+      void refresh();
+    }
+  }, [returnedFromStripe, planCode, endsAt, refresh]);
 
   if (!plan.data || !plan.data.forSale) {
     return null;
@@ -35,6 +51,11 @@ export function PlusOffer({ earnHint }: { earnHint?: string }) {
   const pay = async () => {
     setBusy(true);
     try {
+      if (config.data?.paymentMode === 'STRIPE') {
+        const { url } = await accountApi.stripePlusCheckout();
+        window.location.assign(url);
+        return;
+      }
       const result = await accountApi.buyPlus();
       queryClient.setQueryData(['loyalty', 'plus-plan'], result);
       await refresh();

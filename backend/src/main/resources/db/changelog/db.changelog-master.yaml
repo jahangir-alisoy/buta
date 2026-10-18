@@ -33,3 +33,5 @@ databaseChangeLog:
       file: db/changelog/changes/012-content-wording.sql
   - include:
       file: db/changelog/changes/013-plus-subscription.sql
+  - include:
+      file: db/changelog/changes/014-stripe-payments.sql

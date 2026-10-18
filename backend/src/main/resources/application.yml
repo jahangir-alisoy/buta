@@ -109,6 +109,9 @@ app:
     dev-mailbox-enabled: ${APP_DEV_MAILBOX_ENABLED:false}
   payment:
     provider: ${APP_PAYMENT_PROVIDER:sandbox}
+    stripe:
+      secret-key: ${STRIPE_SECRET_KEY:}
+      webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
   storage:
     provider: ${APP_STORAGE_PROVIDER:database}
     local-dir: ${APP_STORAGE_LOCAL_DIR:./data/uploads}
