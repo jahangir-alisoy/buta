@@ -6,9 +6,20 @@
 | Version | 1.0 (planning baseline) |
 | Date | 2026-10-17 |
 | Repository | `jahangir-alisoy/buta` |
-| Working name | **Buta** (taken from the repository name — confirm in §22) |
+| Working name | **Buta** (taken from the repository name — confirm in §22); the product is presented to users as **Naxış** |
 | Database migrations | **Liquibase** (Flyway is not used anywhere) |
 | Status | Ready to implement. Defaults in §22 apply unless changed. |
+
+## Changes since the planning baseline (2026-10-18)
+
+The app has moved past this baseline in the following ways; the sections below are updated where they described the old behaviour.
+
+- **Stripe Checkout payments** (test mode) next to the sandbox, selected with `APP_PAYMENT_PROVIDER=stripe`: hosted payment page, signed webhooks, return-page confirmation, refunds through Stripe, automatic refund of payments that arrive after the order expired (migration `014`).
+- **Paid Plus subscription:** 4.99 ₼ per month, bought in the sandbox or through Stripe (migration `013`).
+- **Real Azerbaijani cultural organisations as demo partners** at the owner's request (migration `905`, context `demo`), replacing the fictional ones; one fictional partner (Melodia Stream) remains. They keep the `demo` flag; offers and prices stay illustrative and there are no partner agreements.
+- **Brand:** the Naxış logo (`frontend/public/brand/logo.png`, favicon and Apple touch icon).
+- **Phone layout:** on screens up to 599 px wide, offers use a two-column grid of compact cards with tighter spacing so more fit on one screen; tablet and desktop are unchanged.
+- **Owner accounts and email verification** (migrations `010`, `011`) and demo wording cleanup (`012`).
 
 ## Contents
 1. How to use this document
@@ -91,7 +102,7 @@
 | D10 | Points | Integer points (`BIGINT`) in an append-only ledger with unique idempotency keys | Auditable, compensating entries, no duplicate rewards |
 | D11 | Time | `timestamptz` + `Instant` (UTC); business time zone `Asia/Baku`; injected `Clock` | Consistent storage; testable expiry logic |
 | D12 | Content i18n | Localized text as JSONB `{"az": "...", "en": "..."}`, both keys required | New languages without schema changes; no mixed-language fallbacks |
-| D13 | Payments | `PaymentProvider` interface + `SandboxPaymentProvider`, always labeled "sandbox" | No real credentials; honest demo |
+| D13 | Payments | `PaymentProvider` interface with `SandboxPaymentProvider` (default) and `StripePaymentProvider` (Stripe Checkout, hosted page + signed webhooks) | Honest demo by default; real test-mode payments when configured |
 | D14 | Email | `EmailSender` interface: Gmail SMTP with an app password (`MAIL_USERNAME`, `MAIL_APP_PASSWORD`) for deployed environments, Mailpit locally (`dev` profile), in-memory mailbox for tests | Provider abstraction and safe development workflow |
 | D15 | File storage | `FileStorage` interface: **database** (default, survives Render redeploys) and local disk; S3-compatible later | Render's container filesystem is ephemeral |
 | D16 | Recommendations | Explainable weighted rules; weights and signal settings stored in the database | Brief; ML only when real data exists |
@@ -120,7 +131,7 @@
 
 **Honesty rules (non-negotiable):**
 - No fabricated partners, partner agreements, availability, ratings, reviews, testimonials, sales counts or metrics. Demo content is synthetic and labeled illustrative.
-- Real brands and trademarks (streaming services, real cinema chains, real transit cards, etc.) are never used as demo partners.
+- Demo partners are real Azerbaijani cultural organisations (owner decision, migration `905`) with factual descriptions only; they keep the `demo` badge and no partnership, availability or pricing is claimed for them.
 - Sandbox payments are always labeled; nothing pretends a real charge happened.
 - Urgency and scarcity messages only come from real inventory numbers and real validity dates.
 
@@ -144,21 +155,21 @@
 | Award trigger | Order state at which purchase points are awarded (default `FULFILLED`) |
 | Redemption | A voucher/ticket code per purchased unit, presented to the partner |
 | Sandbox | Simulated payment provider; no money moves |
+| Stripe Checkout | Stripe's hosted payment page; used with test keys, no card data reaches our servers |
 
 ---
 
 ## 6. Scope
 
-**In scope (MVP):** public marketplace (home, categories, offers, bundles, events, partners, search, filters, offer detail); single offers and bundles with margin rules; cart, checkout, sandbox payment, vouchers, cancellation, refunds; email-OTP registration and login with sessions; profile and settings; Azerbaijani and English; light and dark themes; Free/Plus membership; points ledger, tiers, tasks, referrals; rule-based recommendations with event tracking and privacy controls; admin console and admin APIs; Docker, Compose, Render; README and SECURITY.md; automated tests.
+**In scope (MVP):** public marketplace (home, categories, offers, bundles, events, partners, search, filters, offer detail); single offers and bundles with margin rules; cart, checkout, sandbox or Stripe Checkout payment, vouchers, cancellation, refunds; email-OTP registration and login with sessions; profile and settings; Azerbaijani and English; light and dark themes; Free/Plus membership; points ledger, tiers, tasks, referrals; rule-based recommendations with event tracking and privacy controls; admin console and admin APIs; Docker, Compose, Render; README and SECURITY.md; automated tests.
 
 **Out of scope (boundaries documented in the README):**
 
 | Item | MVP boundary |
 |---|---|
-| Real payment acquiring | `PaymentProvider` interface ready; sandbox only |
+| Live payment acquiring | Stripe Checkout is integrated and used with test keys; going live needs a live Stripe account and legal review |
 | Partner self-service portal | Platform admins operate partner data; partner redemption is simulated by the admin "redeem code" endpoint; a future `PARTNER` role gets scoped APIs |
 | Partner API integrations (live inventory sync) | Inventory maintained by admins |
-| Paid Plus subscription | Plan model has nullable price and billing period, `purchasable = false` |
 | ML ranking | Logged features and A/B plumbing; upgrade path documented |
 | Seat maps, showtime pickers | Each sellable showtime or ticket type is its own product |
 | SMS / phone verification | Phone optional and stored as unverified |
@@ -280,12 +291,12 @@ The check is deliberately conservative: it assumes the highest tier multiplier a
 | ORD-04 | `POST /checkout/quote` returns a server quote: lines, subtotal, points discount, cash total, points to earn |
 | ORD-05 | `POST /checkout` with an `Idempotency-Key` header, in one transaction: re-validate everything; reserve inventory for every component (ordered by product id to avoid deadlocks); deduct redeemed points (ledger `REDEEM`, loyalty account row locked); create the order (`PENDING_PAYMENT`, `expires_at = now + reservation TTL`, default 15 min); create the payment (`PENDING`). The same key from the same user returns the same order; the same key with a different cart → 409 `IDEMPOTENCY_CONFLICT` |
 | ORD-06 | Oversell prevention: `UPDATE product_inventory SET reserved = reserved + :q WHERE product_id = :id AND total - reserved - sold >= :q`. Zero updated rows → the whole checkout fails with 409 `INSUFFICIENT_INVENTORY` and rolls back. CHECK constraints are the last line of defence |
-| ORD-07 | Sandbox payment success: payment `CAPTURED`; reserved → sold; one redemption code per purchased unit; order `FULFILLED`; loyalty evaluation in the same transaction. Failure: payment `FAILED`; reservations released; points redemption reversed; order `CANCELLED` (reason `PAYMENT_FAILED`). Confirmation is idempotent |
+| ORD-07 | Sandbox payment success: payment `CAPTURED`; reserved → sold; one redemption code per purchased unit; order `FULFILLED`; loyalty evaluation in the same transaction. Failure: payment `FAILED`; reservations released; points redemption reversed; order `CANCELLED` (reason `PAYMENT_FAILED`). Confirmation is idempotent. With Stripe the same success path runs when a paid Checkout session is confirmed (webhook or return page); a payment for an order that is no longer awaiting payment is refunded automatically |
 | ORD-08 | Expiry job (every minute, `FOR UPDATE SKIP LOCKED`): `PENDING_PAYMENT` orders past `expires_at` → `EXPIRED`, reservations released, points redemption reversed |
 | ORD-09 | Customer cancel: only `PENDING_PAYMENT` → `CANCELLED` |
 | ORD-10 | Refund: a customer may refund units whose redemption is `ISSUED` (not redeemed), whose product is refundable and whose refund deadline has not passed. Sandbox refund; redemptions `VOIDED`; inventory returned when restock-on-refund is set; points for refunded units reversed; tasks re-evaluated; order `PARTIALLY_REFUNDED` or `REFUNDED`. Admins may refund regardless of deadline, with a mandatory reason (audited) |
 | ORD-11 | Redemption: admin endpoint marks a code `REDEEMED` (simulates the partner's scan): code exists, is `ISSUED`, is within validity; idempotent. Hourly job: `ISSUED` codes past validity → `EXPIRED`. An order is `COMPLETED` once every unit is `REDEEMED`, `EXPIRED` or `VOIDED` with at least one not voided |
-| ORD-12 | Sandbox payment UX: a dedicated step titled "Sandbox payment — no real money is charged" with "Simulate success" and "Simulate failure". `GET /config` exposes `paymentMode: "SANDBOX"` |
+| ORD-12 | Payment step: with the sandbox, a "Pay" and a "Cancel payment" button; with Stripe, a button that opens Stripe Checkout and a confirmation state on return. `GET /config` exposes `paymentMode` (`SANDBOX` or `STRIPE`) |
 | ORD-13 | Order history shows status, items, amounts, points earned/redeemed, voucher codes with redemption instructions, and the refund action when eligible |
 
 **Order states**
@@ -360,7 +371,7 @@ Transitions live in entity methods; illegal transitions throw and are covered by
 | MEM-01 | Plans `FREE` and `PLUS` stored in `membership_plans` with feature flags: `LOYALTY_POINTS`, `LOYALTY_TASKS`, `TIERS`, `POINTS_REDEMPTION`, `PERSONALIZED_RECOMMENDATIONS`, `EXCLUSIVE_OFFERS`. Default: all enabled for PLUS only. Admins can toggle flags (audited) |
 | MEM-02 | Plus is obtained by (a) earning it: qualifying spend (cash paid in fulfilled, non-refunded orders during the last 180 days) ≥ 100.00 AZN — a spend threshold, clearly named, never shown as points; or (b) admin assignment with optional end date and mandatory reason (audited) |
 | MEM-03 | Earned Plus lasts 365 days from qualification and is re-evaluated nightly and after order events; admin-assigned Plus ends at its end date. When Plus ends, the member becomes FREE; the points balance is kept but cannot be earned or redeemed until Plus returns |
-| MEM-04 | Ready for a paid subscription later: plans have nullable `price` and `billing_period` and `purchasable = false`; memberships record `source` (`DEFAULT`, `EARNED`, `ADMIN`, `SUBSCRIPTION` reserved). No fake payment for Plus |
+| MEM-04 | Paid subscription: Plus is purchasable for 4.99 ₼ per month (migration `013`); purchases are recorded in `membership_purchases` with the provider and, for Stripe, a unique provider reference; memberships record `source` (`DEFAULT`, `EARNED`, `ADMIN`, `SUBSCRIPTION`) |
 | MEM-05 | FREE members browse everything, see all public discounts and bundles, buy, and see an honest Plus explanation with their qualifying-spend progress (e.g. "72.00 ₼ more qualifying spend unlocks Plus") |
 | MEM-06 | Purchases made while FREE never earn points retroactively |
 
@@ -544,7 +555,7 @@ backend/src/main/java/az/buta/
   pricing/         PriceCalculator, MarginPolicy, BusinessSettingsService
   cart/
   order/           checkout, orders, reservations, redemptions, refunds, scheduled jobs
-  payment/         PaymentProvider, SandboxPaymentProvider, payments
+  payment/         PaymentProvider, SandboxPaymentProvider, payments; stripe/ (Stripe Checkout, webhooks, refunds)
   membership/
   loyalty/         accounts, ledger, tiers, task evaluators (one class per task type), referrals
   recommendation/  interactions, interest profiles, scorer, re-ranker, impressions, metrics
@@ -629,7 +640,7 @@ Conventions: UUID primary keys generated by the application; `created_at` / `upd
 - **orders**: `id`, `order_number` unique (`BT-` + zero-padded sequence `order_number_seq`), `user_id`, `status`, `currency`, `subtotal_amount`, `points_redeemed`, `points_discount_amount`, `total_amount` (cash), `checkout_idempotency_key`, `expires_at`, `fulfilled_at`, `completed_at`, `cancelled_at`, `cancel_reason`, timestamps, `version`. Unique (`user_id`, `checkout_idempotency_key`); indexes (`user_id`, `created_at` DESC), (`status`, `expires_at`).
 - **order_items**: `id`, `order_id`, `offer_id`, `offer_type`, `title_snapshot` JSONB, `quantity`, `unit_price`, `line_subtotal`, `points_discount_allocated`, `cash_paid`, `partner_cost_total`, `payment_fee_allocated`, `expected_loyalty_cost`, `contribution_margin`, `points_earned`, `refunded_quantity`, `recommendation_request_id`, `created_at`.
 - **order_item_components**: `id`, `order_item_id`, `product_id`, `partner_id`, `quantity`, `allocated_price`, `partner_cost` — snapshot for partner settlement and reports.
-- **payments**: `id`, `order_id` unique, `provider` (SANDBOX), `provider_reference`, `status`, `amount`, `currency`, `refunded_amount`, `captured_at`, `failed_at`, `failure_reason`, timestamps, `version`.
+- **payments**: `id`, `order_id` unique, `provider` (SANDBOX, STRIPE), `provider_reference`, `status`, `amount`, `currency`, `refunded_amount`, `captured_at`, `failed_at`, `failure_reason`, timestamps, `version`.
 - **refunds**: `id`, `order_id`, `payment_id`, `amount`, `reason`, `initiated_by` (CUSTOMER, ADMIN), `actor_user_id`, `status` (SUCCEEDED, FAILED), `provider_reference`, `created_at`.
 - **redemptions**: `id`, `order_item_id`, `product_id`, `code` unique (12 characters, Crockford Base32, displayed as `XXXX-XXXX-XXXX`), `status`, `valid_from`, `valid_until`, `redeemed_at`, `redeemed_by`, `voided_at`, `created_at`; index (`status`, `valid_until`).
 - **favorites**: `user_id`, `offer_id`, `created_at`; PK (`user_id`, `offer_id`).
@@ -670,6 +681,12 @@ backend/src/main/resources/db/changelog/
     902-demo-users.sql                 phase 2  context demo
     903-demo-orders.sql                phase 3  context demo
     904-demo-loyalty.sql               phase 4  context demo
+    010-owner-accounts.sql                      owner admin accounts (all environments)
+    011-email-verification.sql                  users.email_verified_at
+    012-content-wording.sql                     demo content wording cleanup
+    013-plus-subscription.sql                   paid Plus plan, membership_purchases
+    014-stripe-payments.sql                     STRIPE payment provider, purchase provider reference
+    905-real-partners.sql                       context demo: real Azerbaijani cultural partners
 ```
 
 **Master changelog** lists every file explicitly, schema files (0xx) first and demo files (9xx) last:
@@ -786,6 +803,10 @@ Error codes (each with az/en messages): `VALIDATION_FAILED`, `AUTH_REQUIRED`, `F
 | POST | `/checkout/quote` | `{pointsToRedeem}` → server quote |
 | POST | `/checkout` | `{pointsToRedeem}` + `Idempotency-Key` header → order + payment |
 | POST | `/payments/{paymentId}/sandbox-confirmation` | `{outcome: SUCCEEDED or FAILED}`; exists only while the sandbox provider is active |
+| POST | `/payments/{paymentId}/stripe-checkout` | Stripe only: creates a Checkout session for the order and returns its `url` |
+| POST | `/payments/stripe/sessions/{sessionId}/confirmation` | Stripe only: confirms a session on return from Stripe (owner-checked) |
+| POST | `/me/plus/stripe-checkout` | Stripe only: Checkout session for buying Plus |
+| POST | `/payments/stripe/webhook` | Stripe only: signed webhook (`checkout.session.completed`, `checkout.session.async_payment_succeeded`); no session or CSRF token |
 | GET | `/orders` · `/orders/{id}` | Owner-only order history and detail with vouchers |
 | POST | `/orders/{id}/cancel` | `PENDING_PAYMENT` only |
 | POST | `/orders/{id}/refund` | `{orderItemIds?}` — default all eligible units |
@@ -890,7 +911,8 @@ The application refuses to start when any of these hold:
 - [ ] Logs verified free of OTPs, tokens, cookies and raw emails; retention configured
 - [ ] Rate limits tuned; distributed rate limiting in place before running more than one backend instance
 - [ ] Monitoring and alerting (health, error rate, latency, failed logins, OTP lockouts)
-- [ ] Real payment provider integrated through a hosted payment page with signed webhooks (no card data touches our servers)
+- [x] Payment provider integrated through a hosted payment page with signed webhooks (Stripe Checkout; no card data touches our servers)
+- [ ] Stripe live keys and live webhook signing secret configured only in the hosting environment
 - [ ] Privacy policy, terms of service, partner agreements and refund policy reviewed by legal counsel
 - [ ] Penetration test and accessibility audit before public launch
 
@@ -945,7 +967,8 @@ Operational and security settings come from environment variables. Business rule
 | `APP_ADMIN_EMAILS` | Admin bootstrap list | `admin@buta.test` | real admin emails |
 | `MAIL_USERNAME`, `MAIL_APP_PASSWORD` | Gmail address and app password (smtp.gmail.com:587, STARTTLS); sender is `Buta <MAIL_USERNAME>` | unused (`dev` profile sends to Mailpit) | required |
 | `APP_DEV_MAILBOX_ENABLED` | Dev mailbox endpoint (dev profile only) | `false` | must be `false` |
-| `APP_PAYMENT_PROVIDER` | Payment provider | `sandbox` | `sandbox` until a real provider exists |
+| `APP_PAYMENT_PROVIDER` | Payment provider | `sandbox` | `sandbox`, or `stripe` for Stripe Checkout |
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Stripe secret key and webhook signing secret (required when the provider is `stripe`) | — | — |
 | `APP_STORAGE_PROVIDER`, `APP_STORAGE_LOCAL_DIR` | `database` or `local` | `database`, `./data/uploads` | `database` |
 | `APP_AVATAR_MAX_BYTES` | Upload limit | `2097152` | same |
 | `APP_API_DOCS_ENABLED` | Swagger UI | `true` | `false` |
@@ -1008,7 +1031,7 @@ All values are placeholders for business validation (e.g. the payment fee must c
 | `/auth/complete-profile` | Profile completion | status PROFILE_INCOMPLETE |
 | `/cart` | Cart | signed in |
 | `/checkout` | Review and points | signed in |
-| `/checkout/pay/:orderId` | Sandbox payment | signed in, owner |
+| `/checkout/pay/:orderId` | Payment step (sandbox or Stripe Checkout) | signed in, owner |
 | `/orders` · `/orders/:id` | Orders and vouchers | signed in, owner |
 | `/for-you` | Personalized recommendations (FREE users see the Plus explainer) | signed in |
 | `/loyalty` | Points, tier, tasks, history, referral (FREE users see qualifying-spend progress) | signed in |
@@ -1054,7 +1077,7 @@ Mobile bottom tab bar: Home, Explore, For you, Cart, Account. Desktop: glass top
 - **Explore:** search bar, filter sheet with applied-filter chips, sort selector, result count, grid or list, skeleton loading, empty state with suggestions.
 - **Offer detail:** media, price block (selling price, reference value, savings), bundle comparison and components, validity and event info, availability, terms, redemption instructions, refund policy, points preview for Plus, sticky Add-to-cart bar on mobile.
 - **Cart:** server-priced lines with price-change and unavailable flags, quantity steppers, subtotal, sticky checkout bar.
-- **Checkout:** review → points (Plus) → sandbox payment → confirmation with voucher codes and instructions.
+- **Checkout:** review → points (Plus) → payment (sandbox or Stripe Checkout) → confirmation with voucher codes and instructions.
 - **Loyalty:** available points, earned, redeemed, qualifying spend (clearly separated), tier progress, tasks with reward and terms, history, referral card.
 - **Account:** profile, avatar, email change, phone, language, theme, privacy controls, favorites, orders, logout and log out everywhere.
 - **Admin:** desktop-first and tablet-usable; tables with filters; forms with validation; offer editor with a live margin panel (debounced server preview) and a publish button disabled with reasons when rules fail.
@@ -1066,6 +1089,7 @@ Mobile bottom tab bar: Home, Explore, For you, Cart, Account. Desktop: glass top
 - Touch targets ≥ 44 × 44 px with ≥ 8 px spacing; no hover-only interactions (hover styles only under `@media (hover: hover)`).
 - Inputs ≥ 16 px font size (prevents iOS zoom); correct `inputmode`, `autocomplete` (`email`, `one-time-code`, `given-name`, `family-name`, `username`, `tel`) and `enterkeyhint`.
 - Keyboard-safe layouts: no fixed elements covering focused inputs; forms scroll the focused field into view.
+- Phones (≤ 599 px): two-column offer grid with compact cards, compact home rails (about two cards visible), tighter page and section spacing, so several offers fit in one viewport (priority device: iPhone 15, 393 × 852).
 - `overscroll-behavior: contain` in sheets and dialogs; background scroll locked while a modal is open.
 - Sticky header with matching `scroll-padding-top`.
 - No horizontal overflow at 320 px; long Azerbaijani words wrap (`overflow-wrap: anywhere` on titles, `hyphens: auto` with `<html lang>`).
@@ -1093,7 +1117,7 @@ Initial-route JS ≤ 200 KB gzip (excluding lazy 3D and admin chunks); route-lev
 **Reference data (every environment):** the 9 categories, FREE and PLUS plans with default feature flags, BRONZE/SILVER/GOLD tiers, default business settings.
 
 **Demo data (Liquibase context `demo` only):**
-- About 10 **fictional** partners with the `demo` flag, spread over the categories (suggested names: "Lumen Cinema", "Blue Curtain Theatre", "Orbit Science Museum", "Linen Art Gallery", "Paper Lantern Books", "Maker Loft Workshops", "Shoreline Music Festival", "CityMove Transit Discounts", "Melodia Stream", "Morning Roast Café"). Each shows an "Illustrative demo partner" badge. No real brands, chains, transit cards or streaming services; generic addresses ("Baku — demo address").
+- 22 partners with the `demo` flag. Originally 10 fictional partners; migration `905` turned nine of them into real Azerbaijani cultural organisations in the same categories (CineMastercard, Azerbaijan State Academic National Drama Theatre, Tusi-Bohm Planetarium, YARAT Contemporary Art Space, Ali and Nino, Icherisheher (Old City), Baku Jazz Festival, BakuBus, CafeCity) and added 12 more without offers (Park Cinema, Nizami Cinema Center, the Opera and Ballet Theatre, the State Philharmonic Hall, the International Mugham Center, the State Puppet Theatre, the Heydar Aliyev Center, the National Carpet Museum, the Baku Museum of Modern Art, the National Art Museum, the Gabala International Music Festival, Libraff). "Melodia Stream" stays fictional. Descriptions contain verified facts only; logos are neutral category images.
 - About 30 partner products: event tickets with dates 3–45 days ahead, museum/exhibition admissions, book coupons valid 60–90 days, transport discount passes, digital subscription vouchers, workshop seats, café vouchers (services). Mixed WHOLESALE and COMMISSION cost models.
 - About 22 SINGLE offers and 8 BUNDLE offers, including:
   - "Cinema + exhibition evening" — the 20 + 15 → 28 AZN example (§8.3);
@@ -1261,7 +1285,7 @@ The build proceeds with the default unless told otherwise.
 ## 23. Known limitations and production prerequisites
 
 **MVP limitations**
-- Payments are sandbox only; no money moves.
+- Payments are a sandbox by default; Stripe Checkout runs with test keys.
 - No partner portal or partner API integrations; inventory is maintained by admins.
 - IP-based rate limiting is in memory (single backend instance).
 - No self-service data export or account deletion; no SMS verification; no seat selection; no points expiry.
@@ -1270,8 +1294,8 @@ The build proceeds with the default unless told otherwise.
 - Real Safari/iOS behaviour is verified manually (no WebKit in the build container).
 
 **Before a real launch**
-- Real payment provider via hosted payment page and signed webhooks; refund integration.
-- Signed partner agreements; real partner data; settlement and reconciliation process.
+- Live Stripe account and keys (hosted payment page, signed webhooks and refunds are already integrated).
+- Signed partner agreements (including permission to use partner names and logos); real partner data; settlement and reconciliation process.
 - Legal review: terms, privacy policy, refund policy, consumer protection, personal-data compliance, tax and invoicing.
 - SMTP with SPF/DKIM/DMARC; custom domain; HSTS.
 - Distributed rate limiting (Redis or database) before scaling out; monitoring and alerting; backups with tested restores.
