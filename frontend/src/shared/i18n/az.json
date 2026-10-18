@@ -266,7 +266,6 @@
     "simulateSuccess": "{{amount}} ödə",
     "simulateFailure": "Ödənişi ləğv et",
     "payWithCard": "{{amount}} kartla ödə",
-    "stripeTestHint": "Test rejimi: 4242 4242 4242 4242 kartını, istənilən gələcək tarixi və istənilən CVC kodunu istifadə edin.",
     "confirmingPayment": "Ödənişiniz təsdiqlənir…",
     "reservedUntil": "Biletləriniz {{time}}-dək rezerv olunub.",
     "expired": "Rezervasiyanın müddəti bitdi. Təkliflər buraxıldı.",

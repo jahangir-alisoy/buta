@@ -60,6 +60,7 @@ export default function PaymentPage() {
   const queryClient = useQueryClient();
   const [params] = useSearchParams();
   const returnedFromStripe = params.get('stripe') === 'success';
+  const stripeSessionId = params.get('session_id');
   const order = useQuery({
     queryKey: ['order', orderId],
     queryFn: () => commerceApi.order(orderId),
@@ -67,6 +68,20 @@ export default function PaymentPage() {
     refetchInterval: (query) => (returnedFromStripe && query.state.data?.status === 'PENDING_PAYMENT' ? 2000 : false),
   });
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!returnedFromStripe || !stripeSessionId) {
+      return;
+    }
+    commerceApi
+      .confirmStripeSession(stripeSessionId)
+      .catch(() => undefined)
+      .finally(() => {
+        void queryClient.invalidateQueries({ queryKey: ['order', orderId] });
+        void queryClient.invalidateQueries({ queryKey: ['orders'] });
+        void queryClient.invalidateQueries({ queryKey: ['loyalty'] });
+      });
+  }, [returnedFromStripe, stripeSessionId, orderId, queryClient]);
   const [error, setError] = useState<string | null>(null);
   const secondsLeft = useSecondsLeft(order.data?.expiresAt);
 
@@ -145,12 +160,9 @@ export default function PaymentPage() {
           {stripe && returnedFromStripe ? (
             <p className="row small muted">{t('checkout.confirmingPayment')}</p>
           ) : stripe ? (
-            <>
-              <p className="caption muted">{t('checkout.stripeTestHint')}</p>
-              <button type="button" className="btn btn-primary btn-lg btn-block" onClick={payWithStripe} disabled={busy}>
-                {t('checkout.payWithCard', { amount: formatMoney(data.total) })}
-              </button>
-            </>
+            <button type="button" className="btn btn-primary btn-lg btn-block" onClick={payWithStripe} disabled={busy}>
+              {t('checkout.payWithCard', { amount: formatMoney(data.total) })}
+            </button>
           ) : (
             <>
               <button type="button" className="btn btn-primary btn-lg btn-block" onClick={() => confirm('SUCCEEDED')} disabled={busy}>

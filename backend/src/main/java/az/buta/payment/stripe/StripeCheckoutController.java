@@ -26,6 +26,11 @@ public class StripeCheckoutController {
         return checkouts.orderCheckout(user, paymentId);
     }
 
+    @PostMapping("/payments/stripe/sessions/{sessionId}/confirmation")
+    public void confirm(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable String sessionId) {
+        checkouts.confirm(user, sessionId);
+    }
+
     @PostMapping("/me/plus/stripe-checkout")
     public StripeCheckoutDto plusCheckout(@AuthenticationPrincipal AuthenticatedUser user) {
         return checkouts.plusCheckout(user);
