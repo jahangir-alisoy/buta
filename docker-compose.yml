@@ -48,6 +48,9 @@ services:
       APP_IP_HASH_SECRET: ${APP_IP_HASH_SECRET:-dev-only-ip-hash-secret-change-me-0123456789}
       APP_SESSION_COOKIE_SECURE: "false"
       APP_SESSION_COOKIE_NAME: buta_session
+      APP_PAYMENT_PROVIDER: ${APP_PAYMENT_PROVIDER:-sandbox}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
     ports:
       - "127.0.0.1:8080:8080"
 

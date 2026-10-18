@@ -105,6 +105,21 @@ public class OrderLifecycleService {
     }
 
     @Transactional
+    public boolean confirmProviderPayment(UUID paymentId, String providerReference) {
+        Payment payment = payments.findById(paymentId).orElseThrow(ApiException::notFound);
+        if (payment.status() == PaymentStatus.CAPTURED) {
+            return providerReference.equals(payment.providerReference());
+        }
+        Order order = orders.findForUpdate(payment.orderId()).orElseThrow(ApiException::notFound);
+        if (payment.status() != PaymentStatus.PENDING || order.status() != OrderStatus.PENDING_PAYMENT) {
+            return false;
+        }
+        payment.assignProviderReference(providerReference);
+        fulfill(order, payment, clock.instant());
+        return true;
+    }
+
+    @Transactional
     public OrderDto cancelByCustomer(UUID userId, UUID orderId, Locale locale) {
         Order order = orders.findForUpdate(orderId).filter(candidate -> candidate.userId().equals(userId))
                 .orElseThrow(ApiException::notFound);

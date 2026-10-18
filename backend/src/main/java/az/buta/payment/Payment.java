@@ -80,6 +80,11 @@ public class Payment extends AbstractEntity {
         updatedAt = now;
     }
 
+    public void assignProviderReference(String providerReference) {
+        requirePending();
+        this.providerReference = providerReference;
+    }
+
     public void fail(String reason, Instant now) {
         requirePending();
         status = PaymentStatus.FAILED;

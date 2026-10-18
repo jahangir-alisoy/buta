@@ -32,6 +32,7 @@ import static az.buta.security.SessionAuthenticationFilter.ACCOUNT_PROFILE_INCOM
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    private static final String STRIPE_WEBHOOK = "/api/v1/payments/stripe/webhook";
     private static final String CONTENT_SECURITY_POLICY = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
 
     @Bean
@@ -45,7 +46,8 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource(properties)))
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfRepository)
-                        .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler()))
+                        .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
+                        .ignoringRequestMatchers(STRIPE_WEBHOOK))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
@@ -65,6 +67,7 @@ public class SecurityConfig {
                                 "/api/v1/partners", "/api/v1/partners/*", "/api/v1/offers", "/api/v1/offers/*",
                                 "/api/v1/recommendations").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/interactions").permitAll()
+                        .requestMatchers(HttpMethod.POST, STRIPE_WEBHOOK).permitAll()
                         .requestMatchers("/api/v1/auth/complete-profile").hasAuthority(ACCOUNT_PROFILE_INCOMPLETE)
                         .requestMatchers("/api/v1/auth/logout", "/api/v1/auth/logout-all").authenticated()
                         .requestMatchers("/api/v1/auth/**").permitAll()

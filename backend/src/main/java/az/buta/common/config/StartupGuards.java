@@ -29,6 +29,10 @@ public class StartupGuards implements InitializingBean {
         if (properties.mail().devMailboxEnabled() && !environment.acceptsProfiles(Profiles.of("dev"))) {
             problems.add("APP_DEV_MAILBOX_ENABLED is only allowed with the dev profile");
         }
+        if ("stripe".equals(properties.payment().provider())
+                && (isBlank(properties.payment().stripe().secretKey()) || isBlank(properties.payment().stripe().webhookSecret()))) {
+            problems.add("STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET are required for Stripe payments");
+        }
         if (production) {
             if (tooShort(properties.otp().pepper())) {
                 problems.add("APP_OTP_PEPPER must be at least 32 bytes");

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useParams, useSearchParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { CircleAlert, CircleCheck, Clock } from 'lucide-react';
@@ -58,8 +58,30 @@ export default function PaymentPage() {
   const { orderId = '' } = useParams();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const order = useQuery({ queryKey: ['order', orderId], queryFn: () => commerceApi.order(orderId), staleTime: 0 });
+  const [params] = useSearchParams();
+  const returnedFromStripe = params.get('stripe') === 'success';
+  const stripeSessionId = params.get('session_id');
+  const order = useQuery({
+    queryKey: ['order', orderId],
+    queryFn: () => commerceApi.order(orderId),
+    staleTime: 0,
+    refetchInterval: (query) => (returnedFromStripe && query.state.data?.status === 'PENDING_PAYMENT' ? 2000 : false),
+  });
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!returnedFromStripe || !stripeSessionId) {
+      return;
+    }
+    commerceApi
+      .confirmStripeSession(stripeSessionId)
+      .catch(() => undefined)
+      .finally(() => {
+        void queryClient.invalidateQueries({ queryKey: ['order', orderId] });
+        void queryClient.invalidateQueries({ queryKey: ['orders'] });
+        void queryClient.invalidateQueries({ queryKey: ['loyalty'] });
+      });
+  }, [returnedFromStripe, stripeSessionId, orderId, queryClient]);
   const [error, setError] = useState<string | null>(null);
   const secondsLeft = useSecondsLeft(order.data?.expiresAt);
 
@@ -95,6 +117,23 @@ export default function PaymentPage() {
     }
   };
 
+  const payWithStripe = async () => {
+    if (!data.payment) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const { url } = await commerceApi.stripeCheckout(data.payment.id);
+      window.location.assign(url);
+    } catch (failure) {
+      setError(errorMessage(failure, t('errors.generic')));
+      setBusy(false);
+    }
+  };
+
+  const stripe = data.payment?.mode === 'STRIPE';
+
   return (
     <div className="container page" style={{ maxWidth: 560 }}>
       {data.status === 'PENDING_PAYMENT' && secondsLeft > 0 ? (
@@ -118,12 +157,22 @@ export default function PaymentPage() {
               {error}
             </p>
           )}
-          <button type="button" className="btn btn-primary btn-lg btn-block" onClick={() => confirm('SUCCEEDED')} disabled={busy}>
-            {t('checkout.simulateSuccess', { amount: formatMoney(data.total) })}
-          </button>
-          <button type="button" className="btn btn-secondary btn-block" onClick={() => confirm('FAILED')} disabled={busy}>
-            {t('checkout.simulateFailure')}
-          </button>
+          {stripe && returnedFromStripe ? (
+            <p className="row small muted">{t('checkout.confirmingPayment')}</p>
+          ) : stripe ? (
+            <button type="button" className="btn btn-primary btn-lg btn-block" onClick={payWithStripe} disabled={busy}>
+              {t('checkout.payWithCard', { amount: formatMoney(data.total) })}
+            </button>
+          ) : (
+            <>
+              <button type="button" className="btn btn-primary btn-lg btn-block" onClick={() => confirm('SUCCEEDED')} disabled={busy}>
+                {t('checkout.simulateSuccess', { amount: formatMoney(data.total) })}
+              </button>
+              <button type="button" className="btn btn-secondary btn-block" onClick={() => confirm('FAILED')} disabled={busy}>
+                {t('checkout.simulateFailure')}
+              </button>
+            </>
+          )}
         </div>
       ) : data.status === 'PENDING_PAYMENT' ? (
         <div className="state">

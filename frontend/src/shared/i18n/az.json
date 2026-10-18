@@ -265,6 +265,8 @@
     "sandboxText": "Vauçerlərinizi almaq üçün ödənişi təsdiqləyin.",
     "simulateSuccess": "{{amount}} ödə",
     "simulateFailure": "Ödənişi ləğv et",
+    "payWithCard": "{{amount}} kartla ödə",
+    "confirmingPayment": "Ödənişiniz təsdiqlənir…",
     "reservedUntil": "Biletləriniz {{time}}-dək rezerv olunub.",
     "expired": "Rezervasiyanın müddəti bitdi. Təkliflər buraxıldı.",
     "failed": "Ödəniş ləğv edildi. Təkliflər yenidən səbətinizdədir.",

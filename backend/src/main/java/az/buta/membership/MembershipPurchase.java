@@ -37,6 +37,9 @@ public class MembershipPurchase extends AbstractEntity {
     @Column(name = "payment_provider", nullable = false)
     private String paymentProvider;
 
+    @Column(name = "provider_reference")
+    private String providerReference;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -44,7 +47,7 @@ public class MembershipPurchase extends AbstractEntity {
     }
 
     public static MembershipPurchase record(UUID userId, PlanCode planCode, BigDecimal amount, String currency, Instant periodStartsAt,
-                                            Instant periodEndsAt, String paymentProvider, Instant now) {
+                                            Instant periodEndsAt, String paymentProvider, String providerReference, Instant now) {
         MembershipPurchase purchase = new MembershipPurchase();
         purchase.userId = userId;
         purchase.planCode = planCode;
@@ -53,6 +56,7 @@ public class MembershipPurchase extends AbstractEntity {
         purchase.periodStartsAt = periodStartsAt;
         purchase.periodEndsAt = periodEndsAt;
         purchase.paymentProvider = paymentProvider;
+        purchase.providerReference = providerReference;
         purchase.createdAt = now;
         return purchase;
     }
