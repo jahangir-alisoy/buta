@@ -128,6 +128,8 @@ All configuration comes from environment variables; [`.env.example`](.env.exampl
 | `APP_SESSION_COOKIE_SECURE`, `APP_SESSION_COOKIE_NAME` | Cookie hardening (`true` / `__Host-buta_session` in `prod`) |
 | `APP_DEMO_MODE` | Shows the demo banner; required for sandbox payments in `prod` |
 | `APP_LIQUIBASE_CONTEXTS` | `default` for real data, `default,demo` to load demo content |
+| `APP_PAYMENT_PROVIDER` | `sandbox` (default) or `stripe` for Stripe Checkout |
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Stripe secret key and webhook signing secret, required when `APP_PAYMENT_PROVIDER=stripe`; the webhook endpoint is `POST /api/v1/payments/stripe/webhook` and listens for `checkout.session.completed` and `checkout.session.async_payment_succeeded` |
 | `MAIL_USERNAME`, `MAIL_APP_PASSWORD` | Gmail address and its app password used to send sign-in codes (the `dev` profile sends to Mailpit instead) |
 | `PORT` / `API_UPSTREAM` | Frontend container: listen port and backend address (`https://…` public URL or `http://host:port` internal address) |
 

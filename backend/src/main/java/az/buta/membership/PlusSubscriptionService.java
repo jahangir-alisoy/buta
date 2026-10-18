@@ -48,6 +48,32 @@ public class PlusSubscriptionService {
 
     @Transactional
     public PlusPlanDto purchase(AuthenticatedUser user) {
+        if (!"SANDBOX".equals(paymentProvider.mode())) {
+            throw ApiException.notFound();
+        }
+        grant(user.userId(), purchasablePlan(user), null);
+        return plan(user.userId());
+    }
+
+    @Transactional(readOnly = true)
+    public BigDecimal purchasePrice(AuthenticatedUser user) {
+        return Amounts.scale(purchasablePlan(user).price());
+    }
+
+    @Transactional
+    public boolean completeProviderPurchase(UUID userId, String providerReference) {
+        if (purchases.existsByProviderReference(providerReference)) {
+            return true;
+        }
+        MembershipPlan plan = plusPlan();
+        if (!plan.isForSale() || !canPurchase(membershipService.current(userId))) {
+            return false;
+        }
+        grant(userId, plan, providerReference);
+        return true;
+    }
+
+    private MembershipPlan purchasablePlan(AuthenticatedUser user) {
         if (!user.emailVerified()) {
             throw ApiException.of(ErrorCode.EMAIL_NOT_VERIFIED);
         }
@@ -58,17 +84,20 @@ public class PlusSubscriptionService {
         if (!canPurchase(membershipService.current(user.userId()))) {
             throw ApiException.of(ErrorCode.ALREADY_PLUS);
         }
+        return plan;
+    }
+
+    private void grant(UUID userId, MembershipPlan plan, String providerReference) {
         Instant now = clock.instant();
-        Membership membership = memberships.findById(user.userId()).orElseGet(() -> Membership.free(user.userId(), now));
+        Membership membership = memberships.findById(userId).orElseGet(() -> Membership.free(userId, now));
         Instant periodStart = membership.isPlusAt(now) && membership.endsAt() != null ? membership.endsAt() : now;
         Instant periodEnd = periodStart.plus(plan.billingDuration());
         membership.grantPlus(MembershipSource.SUBSCRIPTION, periodEnd, null, "PURCHASE", now);
         memberships.save(membership);
         BigDecimal amount = Amounts.scale(plan.price());
-        purchases.save(MembershipPurchase.record(user.userId(), PlanCode.PLUS, amount, Amounts.CURRENCY, periodStart, periodEnd,
-                paymentProvider.mode(), now));
-        audit.user(user.userId(), "PLUS_PURCHASED", Map.of("amount", amount, "endsAt", periodEnd.toString()));
-        return plan(user.userId());
+        purchases.save(MembershipPurchase.record(userId, PlanCode.PLUS, amount, Amounts.CURRENCY, periodStart, periodEnd,
+                paymentProvider.mode(), providerReference, now));
+        audit.user(userId, "PLUS_PURCHASED", Map.of("amount", amount, "endsAt", periodEnd.toString()));
     }
 
     private MembershipPlan plusPlan() {
