@@ -122,6 +122,8 @@ export const commerceApi = {
   confirmSandbox: (paymentId: string, outcome: 'SUCCEEDED' | 'FAILED') =>
     api<Order>(`/payments/${paymentId}/sandbox-confirmation`, { method: 'POST', body: { outcome } }),
   stripeCheckout: (paymentId: string) => api<StripeCheckout>(`/payments/${paymentId}/stripe-checkout`, { method: 'POST' }),
+  confirmStripeSession: (sessionId: string) =>
+    api<void>(`/payments/stripe/sessions/${encodeURIComponent(sessionId)}/confirmation`, { method: 'POST' }),
   orders: (page = 0) => api<Page<OrderSummary>>(`/orders${query({ page, size: 20 })}`),
   order: (id: string) => api<Order>(`/orders/${id}`),
   cancel: (id: string) => api<Order>(`/orders/${id}/cancel`, { method: 'POST' }),

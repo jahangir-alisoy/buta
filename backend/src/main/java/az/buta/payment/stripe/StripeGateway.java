@@ -7,6 +7,7 @@ import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
 import com.stripe.model.Refund;
+import com.stripe.model.checkout.Session;
 import com.stripe.net.RequestOptions;
 import com.stripe.param.RefundCreateParams;
 import com.stripe.param.checkout.SessionCreateParams;
@@ -53,6 +54,14 @@ public class StripeGateway {
                 .build();
         try {
             return client.v1().checkout().sessions().create(params).getUrl();
+        } catch (StripeException exception) {
+            throw new StripeGatewayException(exception);
+        }
+    }
+
+    public Session retrieveSession(String sessionId) {
+        try {
+            return client.v1().checkout().sessions().retrieve(sessionId);
         } catch (StripeException exception) {
             throw new StripeGatewayException(exception);
         }

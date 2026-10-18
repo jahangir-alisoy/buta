@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Check, Crown } from 'lucide-react';
-import { accountApi, catalogApi } from '../../shared/api/endpoints';
+import { accountApi, catalogApi, commerceApi } from '../../shared/api/endpoints';
 import { formatDate, formatMoney } from '../../shared/format';
 import { Sheet } from '../../design-system/components/Sheet';
 import { errorMessage } from '../../design-system/components/States';
@@ -20,6 +20,7 @@ export function PlusOffer({ earnHint }: { earnHint?: string }) {
   const { user, refresh } = useAuth();
   const [params] = useSearchParams();
   const returnedFromStripe = params.get('plus') === 'success';
+  const stripeSessionId = params.get('session_id');
   const config = useQuery({ queryKey: ['config'], queryFn: catalogApi.config, staleTime: Infinity });
   const plan = useQuery({
     queryKey: ['loyalty', 'plus-plan'],
@@ -30,6 +31,16 @@ export function PlusOffer({ earnHint }: { earnHint?: string }) {
   const [busy, setBusy] = useState(false);
   const planCode = plan.data?.plan;
   const endsAt = plan.data?.endsAt;
+
+  useEffect(() => {
+    if (!returnedFromStripe || !stripeSessionId) {
+      return;
+    }
+    commerceApi
+      .confirmStripeSession(stripeSessionId)
+      .catch(() => undefined)
+      .finally(() => void queryClient.invalidateQueries({ queryKey: ['loyalty', 'plus-plan'] }));
+  }, [returnedFromStripe, stripeSessionId, queryClient]);
 
   useEffect(() => {
     if (returnedFromStripe && planCode === 'PLUS') {

@@ -266,7 +266,6 @@
     "simulateSuccess": "Pay {{amount}}",
     "simulateFailure": "Cancel payment",
     "payWithCard": "Pay {{amount}} by card",
-    "stripeTestHint": "Test mode: use card 4242 4242 4242 4242, any future expiry date and any CVC.",
     "confirmingPayment": "Confirming your payment…",
     "reservedUntil": "Your tickets are reserved until {{time}}.",
     "expired": "The reservation has expired. Your items were released.",
